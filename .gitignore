@@ -8,14 +8,37 @@ dist/
 .venv/
 venv/
 env/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Local results and logs (may contain hardware details) — keep out of git
+# uv lockfile (optional; remove this line if you standardize on uv)
+uv.lock
+
+# Local benchmark output (may contain hardware details)
 .results/
 .logs/
 *.jsonl
 !benchmark/tasks/*.json
 
+# Node / Cloudflare Workers
+node_modules/
+workers/node_modules/
+.wrangler/
+workers/.wrangler/
+.dev.vars
+workers/.dev.vars
+
 # Editors / OS
 .idea/
 .vscode/
+.cursor/
 .DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Wrangler build artifacts
+worker-configuration.d.ts

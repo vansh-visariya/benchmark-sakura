@@ -5,7 +5,7 @@ Guidance for working in the benchmark-sakura repository.
 ## Architecture
 
 ```
-cli.py          → CLI entry point (sakura run | list | detect)
+cli.py          → CLI (sakura run | list | detect | submit)
 runner.py       → Orchestrates model calls, executor, scoring
 models.py       → Ollama streaming client
 executor/       → Python (Docker sandbox) + SQL (SQLite) execution
@@ -16,8 +16,11 @@ task.py         → Task JSON loader + manifest
 submit.py       → Leaderboard submission
 benchmark/tasks → Task definitions (JSON)
 docker/         → Sandbox image + driver
-website/        → Static site for sakura.vaansh.dev
+website/        → Static assets (served by the Worker)
+workers/        → Cloudflare Worker + D1 API + asset hosting
 ```
+
+Production: `sakura.vaansh.dev` — one Worker serves the website and `/api/v1/*`.
 
 ## Commands
 
@@ -26,8 +29,15 @@ pip install -e .
 ./docker/build.sh          # or docker/build.ps1 on Windows
 sakura list
 sakura run --model MODEL
+sakura run --model MODEL --submit
+sakura submit .results/run.json
 sakura detect
-python -m cli run --model MODEL   # without install
+```
+
+Deploy API + website:
+
+```bash
+cd workers && npm install && npm run db:migrate && npm run deploy
 ```
 
 ## Adding a task
