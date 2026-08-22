@@ -9,7 +9,7 @@ from pathlib import Path
 from config import load_config
 from detect import detect
 from runner import Runner
-from submit import submit_result
+from submit import submit_file, submit_result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,6 +40,9 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("list", help="List tasks that would run for the configured tags")
     sub.add_parser("detect", help="Print detected hardware (anti-cheat probe)")
+
+    submit_parser = sub.add_parser("submit", help="Submit a saved .results JSON file to the leaderboard")
+    submit_parser.add_argument("file", help="Path to a results JSON file under .results/")
 
     args = parser.parse_args(argv)
     config = load_config()
@@ -75,6 +78,15 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:
                 print(f"Submit failed: {exc}", file=sys.stderr)
                 return 1
+        return 0
+
+    if args.command == "submit":
+        try:
+            url = submit_file(Path(args.file), config)
+            print(f"Submitted to {url}")
+        except Exception as exc:
+            print(f"Submit failed: {exc}", file=sys.stderr)
+            return 1
         return 0
 
     return 1

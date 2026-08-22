@@ -1,0 +1,15 @@
+{
+  "name": "sakura-api",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute sakura --remote --file=schema.sql",
+    "db:migrate:local": "wrangler d1 execute sakura --local --file=schema.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250204.0",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.125.0"
+  }
+}

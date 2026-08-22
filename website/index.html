@@ -18,6 +18,7 @@
   <header class="site-header">
     <a class="logo" href="/">Sakura</a>
     <nav>
+      <a href="#leaderboard">Leaderboard</a>
       <a href="#benchmark">Benchmark</a>
       <a href="#why">Why it matters</a>
       <a href="#tasks">Tasks</a>
@@ -35,7 +36,7 @@
         hardware attestation so results mean something.
       </p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="https://github.com/vanshvisariya/benchmark-sakura">View on GitHub</a>
+        <a class="btn btn-primary" href="https://github.com/vansh-visariya/benchmark-sakura">View on GitHub</a>
         <a class="btn btn-secondary" href="#run">Run locally</a>
       </div>
       <div class="hero-stats">
@@ -51,6 +52,33 @@
           <span class="stat-value">100%</span>
           <span class="stat-label">Local &amp; open</span>
         </div>
+      </div>
+    </section>
+
+    <section id="leaderboard" class="section section-alt">
+      <div class="leaderboard-header">
+        <div>
+          <h2>Community leaderboard</h2>
+          <p class="section-intro">Live results from contributors who run Sakura locally and submit with <code>--submit</code>. The page polls the API every minute — no page reload needed.</p>
+        </div>
+        <p id="leaderboard-meta" class="leaderboard-meta">Loading…</p>
+      </div>
+      <div class="table-wrap">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Model</th>
+              <th>Pass rate</th>
+              <th>Throughput</th>
+              <th>Hardware</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr><td colspan="6" class="empty-row">Loading leaderboard…</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -136,7 +164,7 @@
       <h2>Run the benchmark</h2>
       <p class="section-intro">Install dependencies, build the sandbox image once, then point Sakura at any Ollama model.</p>
       <pre class="code-block"><code># Clone and install
-git clone https://github.com/vanshvisariya/benchmark-sakura.git
+git clone https://github.com/vansh-visariya/benchmark-sakura.git
 cd benchmark-sakura
 pip install -e .
 
@@ -147,13 +175,14 @@ pip install -e .
 sakura list
 sakura run --model qwen2.5-coder:7b
 sakura run --model deepseek-coder:6.7b --tags codegen --submit</code></pre>
-      <p class="note">Results are saved under <code>.results/</code>. Use <code>--submit</code> to share scores on this leaderboard when the API is live.</p>
+      <p class="note">Results are saved under <code>.results/</code>. Add <code>--submit</code> to POST scores to <code>sakura.vaansh.dev/api/v1/submissions</code> — they appear on the leaderboard above within a minute.</p>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>MIT licensed · <a href="https://github.com/vanshvisariya/benchmark-sakura">benchmark-sakura</a></p>
+    <p>MIT licensed · <a href="https://github.com/vansh-visariya/benchmark-sakura">benchmark-sakura</a></p>
     <p>sakura.vaansh.dev</p>
   </footer>
+  <script src="leaderboard.js"></script>
 </body>
 </html>
