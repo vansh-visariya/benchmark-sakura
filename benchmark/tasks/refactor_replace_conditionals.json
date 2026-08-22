@@ -1,0 +1,13 @@
+{
+  "id": "refactor_replace_conditionals",
+  "category": "refactor",
+  "tags": ["all", "refactor", "easy"],
+  "prompt": "Refactor the function `grade(score)` to use a dictionary lookup instead of if/elif chain, keeping identical behavior.\n\n```python\ndef grade(score):\n    if score >= 90:\n        return 'A'\n    if score >= 80:\n        return 'B'\n    if score >= 70:\n        return 'C'\n    return 'F'\n```\n\nExpected: grade(95) == 'A'; grade(85) == 'B'; grade(50) == 'F'",
+  "reference": "def grade(score):\n    if score >= 90:\n        return 'A'\n    if score >= 80:\n        return 'B'\n    if score >= 70:\n        return 'C'\n    return 'F'\n",
+  "tests": {
+    "test_a": "assert grade(95) == 'A'\n",
+    "test_b": "assert grade(85) == 'B'\n",
+    "test_c": "assert grade(75) == 'C'\n",
+    "test_f": "assert grade(50) == 'F'\n"
+  }
+}

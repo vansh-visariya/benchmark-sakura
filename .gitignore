@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Local results and logs (may contain hardware details) — keep out of git
+.results/
+.logs/
+*.jsonl
+!benchmark/tasks/*.json
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

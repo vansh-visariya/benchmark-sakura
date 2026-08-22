@@ -1,0 +1,6 @@
+# Core dependencies for benchmark-sakura
+psutil>=5.9
+requests>=2.31
+
+# Required to execute untrusted model output in Docker
+docker>=7.0

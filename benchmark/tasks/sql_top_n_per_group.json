@@ -1,0 +1,12 @@
+{
+  "id": "sql_top_n_per_group",
+  "category": "sql",
+  "tags": ["all", "sql", "hard"],
+  "prompt": "Write a SQL query that returns the top 2 highest-paid employees in each department. Columns: `department`, `employee`, `salary`, ordered by `department` then `salary` descending.",
+  "sql_schema": "CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL);",
+  "sql_setup": "INSERT INTO employees VALUES (1, 'Alice', 'Eng', 90000), (2, 'Bob', 'Eng', 80000), (3, 'Carol', 'Eng', 70000), (4, 'Dave', 'Sales', 85000), (5, 'Eve', 'Sales', 75000), (6, 'Frank', 'Sales', 60000);",
+  "reference": "WITH ranked AS (\n  SELECT department, name AS employee, salary,\n         ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS rn\n  FROM employees\n)\nSELECT department, employee, salary FROM ranked WHERE rn <= 2 ORDER BY department, salary DESC;",
+  "tests": {
+    "main": "[['Eng', 'Alice', 90000.0], ['Eng', 'Bob', 80000.0], ['Sales', 'Dave', 85000.0], ['Sales', 'Eve', 75000.0]]"
+  }
+}

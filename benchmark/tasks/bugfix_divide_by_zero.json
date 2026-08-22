@@ -1,0 +1,12 @@
+{
+  "id": "bugfix_divide_by_zero",
+  "category": "bugfix",
+  "tags": ["all", "bugfix", "easy"],
+  "prompt": "The function `average(numbers)` crashes when given an empty list. Fix it to return 0.0 for an empty input instead of raising.\n\n```python\ndef average(numbers):\n    return sum(numbers) / len(numbers)\n```\n\nExpected: average([]) == 0.0; average([2, 4]) == 3.0",
+  "reference": "def average(numbers):\n    if not numbers:\n        return 0.0\n    return sum(numbers) / len(numbers)\n",
+  "tests": {
+    "test_empty": "assert average([]) == 0.0\n",
+    "test_basic": "assert average([2, 4]) == 3.0\n",
+    "test_single": "assert average([5]) == 5.0\n"
+  }
+}

@@ -1,0 +1,36 @@
+[project]
+name = "benchmark-sakura"
+version = "0.1.0"
+description = "Reproducible benchmark for local coding models on consumer hardware"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "psutil>=5.9",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+docker = ["docker>=7.0"]
+
+[project.scripts]
+sakura = "cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "cli",
+    "config",
+    "detect",
+    "models",
+    "runner",
+    "sandbox",
+    "scoring",
+    "submit",
+    "task",
+]
+
+[tool.setuptools.packages.find]
+include = ["executor*"]

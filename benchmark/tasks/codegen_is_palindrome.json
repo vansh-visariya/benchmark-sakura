@@ -1,0 +1,12 @@
+{
+  "id": "codegen_is_palindrome",
+  "category": "codegen",
+  "tags": ["all", "codegen", "easy"],
+  "prompt": "Write a function `is_palindrome(s)` that returns True if string `s` reads the same forwards and backwards, ignoring case and non-alphanumeric characters.",
+  "reference": "def is_palindrome(s):\n    cleaned = [c.lower() for c in s if c.isalnum()]\n    return cleaned == cleaned[::-1]\n",
+  "tests": {
+    "test_plain": "assert is_palindrome('racecar') is True\n",
+    "test_with_spaces": "assert is_palindrome('A man a plan a canal Panama') is True\n",
+    "test_false": "assert is_palindrome('hello') is False\n"
+  }
+}
