@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sakura — Benchmark for Local Coding Models</title>
+  <meta name="description" content="A reproducible benchmark for small coding models on consumer hardware. Measure accuracy, latency, and throughput on your own machine.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="blossom blossom-1" aria-hidden="true"></div>
+  <div class="blossom blossom-2" aria-hidden="true"></div>
+  <div class="blossom blossom-3" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="logo" href="/">Sakura</a>
+    <nav>
+      <a href="#benchmark">Benchmark</a>
+      <a href="#why">Why it matters</a>
+      <a href="#tasks">Tasks</a>
+      <a href="#run">Get started</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Open benchmark · Consumer hardware</p>
+      <h1>Measure what local coding models actually do on <em>your</em> machine</h1>
+      <p class="lead">
+        Sakura is a reproducible benchmark for small LLMs running via Ollama on laptops and desktops.
+        It scores real code generation, bug fixes, SQL, and refactors — with sandboxed execution and
+        hardware attestation so results mean something.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/vanshvisariya/benchmark-sakura">View on GitHub</a>
+        <a class="btn btn-secondary" href="#run">Run locally</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-value">17</span>
+          <span class="stat-label">Curated tasks</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">4</span>
+          <span class="stat-label">Categories</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">100%</span>
+          <span class="stat-label">Local &amp; open</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="benchmark" class="section">
+      <h2>What Sakura measures</h2>
+      <div class="cards">
+        <article class="card">
+          <h3>Accuracy</h3>
+          <p>Pass rate across codegen, bugfix, SQL, and refactor tasks. A task counts only when every test passes.</p>
+        </article>
+        <article class="card">
+          <h3>Latency</h3>
+          <p>Time to first token and total generation time per task, streamed from your Ollama instance.</p>
+        </article>
+        <article class="card">
+          <h3>Throughput</h3>
+          <p>Output tokens per second so you can compare quantization, context size, and hardware fairly.</p>
+        </article>
+        <article class="card">
+          <h3>Hardware truth</h3>
+          <p>GPU, CPU, and RAM are probed on the host — not self-reported — so leaderboard entries reflect real setups.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="why" class="section section-alt">
+      <div class="split">
+        <div>
+          <h2>Why this helps the community</h2>
+          <p>
+            Cloud benchmarks and vendor demos often run on hardware most developers never touch.
+            Sakura closes that gap by standardizing tasks and execution while keeping inference on
+            <strong>your</strong> GPU or CPU.
+          </p>
+        </div>
+        <ul class="benefits">
+          <li>
+            <strong>Fair comparisons</strong> — Same 17 tasks, same sandbox, same scoring rules for every model.
+          </li>
+          <li>
+            <strong>Local-first privacy</strong> — Code runs on your machine; only aggregated results are shared if you submit.
+          </li>
+          <li>
+            <strong>Small-model focus</strong> — Built for 7B-class models on consumer VRAM, not datacenter clusters.
+          </li>
+          <li>
+            <strong>Transparent tasks</strong> — Every prompt, test, and reference solution lives in the open repo.
+          </li>
+          <li>
+            <strong>Contributor-friendly</strong> — Add a JSON file, update the manifest, and ship a new task in minutes.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="tasks" class="section">
+      <h2>Task categories</h2>
+      <div class="task-grid">
+        <div class="task-category">
+          <span class="tag">codegen</span>
+          <h3>Code generation</h3>
+          <p>Classic algorithms and utilities — fibonacci, two sum, palindrome, linked lists, JSON parsing.</p>
+        </div>
+        <div class="task-category">
+          <span class="tag">bugfix</span>
+          <h3>Bug fixing</h3>
+          <p>Off-by-one errors, divide-by-zero, null handling, and regex catastrophic backtracking.</p>
+        </div>
+        <div class="task-category">
+          <span class="tag">sql</span>
+          <h3>SQL</h3>
+          <p>Joins, aggregates, top-N per group, and recursive hierarchies against in-memory SQLite.</p>
+        </div>
+        <div class="task-category">
+          <span class="tag">refactor</span>
+          <h3>Refactoring</h3>
+          <p>Extract method, flatten nested logic, and replace conditionals with clearer structure.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="run" class="section section-run">
+      <h2>Run the benchmark</h2>
+      <p class="section-intro">Install dependencies, build the sandbox image once, then point Sakura at any Ollama model.</p>
+      <pre class="code-block"><code># Clone and install
+git clone https://github.com/vanshvisariya/benchmark-sakura.git
+cd benchmark-sakura
+pip install -e .
+
+# Build the Docker sandbox (one time)
+./docker/build.sh   # or: .\docker\build.ps1 on Windows
+
+# List tasks and run
+sakura list
+sakura run --model qwen2.5-coder:7b
+sakura run --model deepseek-coder:6.7b --tags codegen --submit</code></pre>
+      <p class="note">Results are saved under <code>.results/</code>. Use <code>--submit</code> to share scores on this leaderboard when the API is live.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>MIT licensed · <a href="https://github.com/vanshvisariya/benchmark-sakura">benchmark-sakura</a></p>
+    <p>sakura.vaansh.dev</p>
+  </footer>
+</body>
+</html>

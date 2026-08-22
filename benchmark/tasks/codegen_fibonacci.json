@@ -1,0 +1,12 @@
+{
+  "id": "codegen_fibonacci",
+  "category": "codegen",
+  "tags": ["all", "codegen", "easy"],
+  "prompt": "Write a function `fib(n)` that returns the nth Fibonacci number, where fib(0) == 0 and fib(1) == 1.",
+  "reference": "def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n",
+  "tests": {
+    "test_small": "assert fib(0) == 0\nassert fib(1) == 1\n",
+    "test_medium": "assert fib(10) == 55\nassert fib(15) == 610\n",
+    "test_large": "assert fib(30) == 832040\n"
+  }
+}

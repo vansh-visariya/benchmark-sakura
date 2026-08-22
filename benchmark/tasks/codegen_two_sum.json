@@ -1,0 +1,12 @@
+{
+  "id": "codegen_two_sum",
+  "category": "codegen",
+  "tags": ["all", "codegen", "medium"],
+  "prompt": "Write a function `two_sum(nums, target)` that returns the indices of the two numbers in `nums` that add up to `target`. Assume exactly one valid answer and that the same element is not used twice.",
+  "reference": "def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    raise ValueError('no solution')\n",
+  "tests": {
+    "test_basic": "assert sorted(two_sum([2, 7, 11, 15], 9)) == [0, 1]\n",
+    "test_repeat": "assert sorted(two_sum([3, 2, 4], 6)) == [1, 2]\n",
+    "test_negative": "assert sorted(two_sum([-1, -2, -3, -4, -5], -8)) == [2, 4]\n"
+  }
+}

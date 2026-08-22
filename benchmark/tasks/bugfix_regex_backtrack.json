@@ -1,0 +1,12 @@
+{
+  "id": "bugfix_regex_backtrack",
+  "category": "bugfix",
+  "tags": ["all", "bugfix", "hard", "regex"],
+  "prompt": "The function `has_balanced_parens(s)` is supposed to return True only when parentheses are balanced. It currently returns True for some unbalanced inputs due to catastrophic backtracking in its regex. Fix the implementation to be correct and efficient.\n\n```python\nimport re\n\n\ndef has_balanced_parens(s):\n    while '()' in s:\n        s = s.replace('()', '')\n    return len(s) == 0\n```\n\nExpected: has_balanced_parens('(()())') == True; has_balanced_parens('(()') == False",
+  "reference": "def has_balanced_parens(s):\n    depth = 0\n    for ch in s:\n        if ch == '(':\n            depth += 1\n        elif ch == ')':\n            depth -= 1\n            if depth < 0:\n                return False\n    return depth == 0\n",
+  "tests": {
+    "test_balanced": "assert has_balanced_parens('(()())') is True\n",
+    "test_unbalanced_open": "assert has_balanced_parens('(()') is False\n",
+    "test_unbalanced_close": "assert has_balanced_parens('())') is False\n"
+  }
+}

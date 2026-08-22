@@ -1,0 +1,24 @@
+{
+  "name": "benchmark-sakura starter set",
+  "version": "0.1.0",
+  "description": "A curated starter set of coding tasks for benchmarking small local coding models on consumer hardware. Categories: codegen, bugfix, sql, refactor.",
+  "tasks": [
+    "codegen_fibonacci.json",
+    "codegen_two_sum.json",
+    "codegen_is_palindrome.json",
+    "codegen_reverse_linked_list.json",
+    "codegen_max_subarray.json",
+    "codegen_json_to_csv.json",
+    "bugfix_off_by_one.json",
+    "bugfix_divide_by_zero.json",
+    "bugfix_null_pointer.json",
+    "bugfix_regex_backtrack.json",
+    "sql_join_customers.json",
+    "sql_aggregate_orders.json",
+    "sql_top_n_per_group.json",
+    "sql_recursive_hierarchy.json",
+    "refactor_extract_method.json",
+    "refactor_flatten_nested.json",
+    "refactor_replace_conditionals.json"
+  ]
+}

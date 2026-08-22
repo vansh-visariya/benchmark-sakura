@@ -1,0 +1,12 @@
+{
+  "id": "codegen_reverse_linked_list",
+  "category": "codegen",
+  "tags": ["all", "codegen", "medium"],
+  "prompt": "Define a `ListNode` class with `val` and `next`, then write a function `reverse_list(head)` that reverses a singly linked list iteratively and returns the new head.",
+  "reference": "class ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\n\n\ndef reverse_list(head):\n    prev = None\n    current = head\n    while current is not None:\n        nxt = current.next\n        current.next = prev\n        prev = current\n        current = nxt\n    return prev\n",
+  "tests": {
+    "test_empty": "assert reverse_list(None) is None\n",
+    "test_single": "h = ListNode(1); assert reverse_list(h).val == 1\n",
+    "test_multi": "h = ListNode(1, ListNode(2, ListNode(3)))\nrev = reverse_list(h)\nvals = []\ncur = rev\nwhile cur: vals.append(cur.val); cur = cur.next\nassert vals == [3, 2, 1]\n"
+  }
+}

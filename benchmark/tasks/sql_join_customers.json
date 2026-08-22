@@ -1,0 +1,13 @@
+{
+  "id": "sql_join_customers",
+  "category": "sql",
+  "tags": ["all", "sql", "medium"],
+  "prompt": "Write a SQL query that returns the customer name and their total order amount, for customers who have placed at least one order. Columns should be named `name` and `total_amount`, ordered by `total_amount` descending.",
+  "sql_schema": "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT);\nCREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL);",
+  "sql_setup": "INSERT INTO customers VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Carol');\nINSERT INTO orders VALUES (1, 1, 100.0), (2, 1, 50.0), (3, 2, 75.5);",
+  "reference": "SELECT c.name AS name, SUM(o.amount) AS total_amount\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nGROUP BY c.id\nORDER BY total_amount DESC;",
+  "expected": [["Alice", 150.0], ["Bob", 75.5]],
+  "tests": {
+    "main": "[['Alice', 150.0], ['Bob', 75.5]]"
+  }
+}
