@@ -893,6 +893,14 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+ 
+.task-card-meta {
+  margin-top: 0.35rem;
+  color: var(--text-secondary, #888);
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  font-weight: 600;
+}
 
 /* Pagination */
 .pagination-bar {

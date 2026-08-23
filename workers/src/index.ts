@@ -59,6 +59,12 @@ function json(data: unknown, status = 200, extra: Record<string, string> = {}) {
   });
 }
 
+function _safeInt(value: string | null, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+
 function primaryGpu(hardware: SubmissionPayload["hardware"]) {
   const gpus = hardware.gpus ?? [];
   const discrete = gpus.find((g) => !g.is_cpu);
@@ -233,8 +239,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === "GET" && url.pathname === "/api/v1/leaderboard") {
-    const limit = Math.min(Number(url.searchParams.get("limit") ?? "50"), 100);
-    const offset = Number(url.searchParams.get("offset") ?? "0");
+    const limit = Math.min(_safeInt(url.searchParams.get("limit"), 50), 100);
+    const offset = Math.max(_safeInt(url.searchParams.get("offset"), 0), 0);
     const model = url.searchParams.get("model") ?? undefined;
     const sortBy = url.searchParams.get("sort_by") ?? undefined;
     const sortOrder = url.searchParams.get("sort_order") ?? undefined;

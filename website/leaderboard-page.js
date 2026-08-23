@@ -304,6 +304,7 @@ async function renderDetailBox(id) {
                   ? `<div class="task-card-error" title="${escapeHtml(t.test_details[0].detail || '')}">${escapeHtml(t.test_details[0].detail || 'Test failed')}</div>`
                   : ""
               }
+              ${t.steps_used != null ? `<div class="task-card-meta">${t.steps_used} step(s)</div>` : ""}
             </div>
           `;
         })
