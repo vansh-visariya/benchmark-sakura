@@ -70,6 +70,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Allow the model to reason before returning its code",
     )
+    run_parser.add_argument(
+        "--steps",
+        type=int,
+        default=None,
+        help="Max tool calls per terminal-agent task (overrides SAKURA_AGENT_MAX_STEPS)",
+    )
 
     list_parser = sub.add_parser("list", help="List tasks that would run for the configured tags")
     list_parser.add_argument("--tags", default="", help="Comma-separated tags")
@@ -136,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
         tags = _build_tags_filter(args.tags, args.category, args.difficulty)
         selected_tasks = runner.manifest.select(tags)
         print(f"Running {len(selected_tasks)} task(s) matching tags {tags} with model {args.model!r}...")
+        if args.steps:
+            runner.config.agent_max_steps = args.steps
         try:
             result = runner.run(model=args.model, system_prompt=args.system, tags=tags, think=args.think)
         except SandboxUnavailable as exc:
