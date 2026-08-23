@@ -2,7 +2,7 @@
 
 A reproducible benchmark for **local coding models** on consumer hardware.
 
-Run it against any [Ollama](https://ollama.com) model, measure accuracy + latency + throughput, and submit scores to the live leaderboard at [sakura.vaansh.dev](https://sakura.vaansh.dev).
+Run it against any [Ollama](https://ollama.com) model, measure accuracy + latency + throughput across 23 tasks, and submit scores to the live leaderboard at [sakura.vaansh.dev/leaderboard](https://sakura.vaansh.dev/leaderboard).
 
 ## Quick start
 
@@ -15,8 +15,12 @@ pip install -e .
 ./docker/build.sh        # Linux/macOS
 .\docker\build.ps1       # Windows
 
-# Run
+# List tasks or filter by category / difficulty
 sakura list
+sakura list -c systems
+sakura list -d hard
+
+# Run benchmark
 sakura run --model qwen2.5-coder:7b
 # Enable reasoning for models that support Ollama thinking
 sakura run --model qwen3.5:9b --think
@@ -32,28 +36,44 @@ sakura run --model qwen2.5-coder:7b --submit
 sakura submit .results/20260822T155055Z_qwen2.5-coder_7b.json
 ```
 
-Submissions POST to `https://sakura.vaansh.dev/api/v1/submissions`. The website polls `/api/v1/leaderboard` every minute.
+Submissions POST to `https://sakura.vaansh.dev/api/v1/submissions`. The website polls `/api/v1/leaderboard` and updates live.
+
+## Compare & Report Tools
+
+```bash
+# Compare two benchmark runs side-by-side in the terminal
+sakura compare .results/run_qwen.json .results/run_deepseek.json
+
+# Generate a formatted Markdown summary report
+sakura report .results/run_qwen.json -o report.md
+```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `sakura list` | List tasks for the configured tags |
-| `sakura detect` | Print probed hardware (GPU, CPU, RAM) |
-| `sakura run -m MODEL` | Run the benchmark |
-| `sakura run -m MODEL --tags sql` | Run tasks matching tags |
+| `sakura list` | List all tasks |
+| `sakura list -c CAT` | List tasks filtered by category (`codegen`, `bugfix`, `sql`, `refactor`, `systems`, `protocol`) |
+| `sakura list -d DIFF` | List tasks filtered by difficulty (`easy`, `medium`, `hard`) |
+| `sakura detect` | Print probed hardware (GPU, CPU, RAM, OS) |
+| `sakura run -m MODEL` | Run the full benchmark |
+| `sakura run -m MODEL -c CAT` | Run tasks in a specific category |
 | `sakura run -m MODEL --think` | Enable model reasoning before code output |
 | `sakura run -m MODEL --submit` | Run and submit to leaderboard |
 | `sakura submit FILE.json` | Submit a saved `.results/` file |
+| `sakura compare RUN1 RUN2` | Compare two runs side-by-side |
+| `sakura report RUN.json` | Generate Markdown report |
 
-## Task categories
+## Task categories (23 curated tasks)
 
-- **codegen** — algorithms and utilities
-- **bugfix** — common defect patterns
-- **sql** — queries against in-memory SQLite; task schemas are included in the model prompt
-- **refactor** — structure and readability
+- **codegen (6)** — algorithms and utilities (Fibonacci, Two Sum, Palindrome, Linked Lists, Max Subarray, JSON-to-CSV)
+- **bugfix (4)** — common defect patterns (Off-by-One, Divide-by-Zero, Null Handling, Regex Catastrophic Backtracking)
+- **sql (6)** — queries against in-memory SQLite (Joins, Aggregates, Top-N Per Group, Recursive Hierarchy, Sessionization, Gaps & Islands)
+- **refactor (3)** — structure and readability (Extract Method, Flatten Nested Logic, Replace Conditionals)
+- **systems (2)** — stateful systems problems (O(1) LRU Cache, Token Bucket Rate Limiter)
+- **protocol (2)** — serialization and network specifications (Redis RESP2 Protocol, SemVer 2.0.0 Comparator)
 
-17 tasks ship in the starter set. Add more by dropping a JSON file in `benchmark/tasks/` and updating `manifest.json`.
+Add more tasks by dropping a JSON file in `benchmark/tasks/` and updating `manifest.json`.
 
 Use `--think` for reasoning-capable models when solving complex tasks. Reasoning is kept separate from the final code response, and its token and latency cost is included in the run metrics. Without `--think`, the benchmark uses a faster code-only request.
 
@@ -61,8 +81,8 @@ Use `--think` for reasoning-capable models when solving complex tasks. Reasoning
 
 [sakura.vaansh.dev](https://sakura.vaansh.dev) is served by a Cloudflare Worker that hosts:
 
-- Static site (`website/`) — landing page + live leaderboard
-- REST API (`workers/`) — D1-backed submissions
+- Static site (`website/`) — landing page (`index.html`), full interactive leaderboard (`leaderboard.html`) with category filtering, search, task drill-downs, and side-by-side model comparisons.
+- REST API (`workers/`) — D1-backed submissions with sorting, pagination, and search endpoints.
 
 Deploy:
 
