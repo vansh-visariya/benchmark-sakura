@@ -12,6 +12,7 @@ never has to glob the filesystem itself.
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,21 @@ from typing import Any
 from config import TASKS_DIR
 
 MANIFEST_FILENAME = "manifest.json"
+
+_KINDS = ("codegen", "sql", "terminal")
+_BASE_REQUIRED_FIELDS = ("id", "category", "prompt", "reference", "tests")
+_REQUIRED_FIELDS = {
+    "terminal": ("id", "category", "prompt", "tests_cmd"),
+}
+
+
+def _string_map(value: Any) -> dict[str, str] | None:
+    """Coerce a JSON object of strings into ``{str: str}``, else None."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("expected an object mapping names to string content")
+    return {str(k): str(v) for k, v in value.items()}
 
 
 @dataclass(frozen=True)
@@ -47,6 +63,12 @@ class Task:
     sql_schema: str | None = None
     sql_setup: str | None = None
     expected: list[list[Any]] | None = None
+    kind: str = "codegen"
+    environment_files: dict[str, str] | None = None
+    setup_cmd: str | None = None
+    tests_cmd: str | None = None
+    test_files: dict[str, str] | None = None
+    max_steps: int | None = None
 
     @property
     def test_count(self) -> int:
@@ -54,7 +76,13 @@ class Task:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Task":
-        missing = [key for key in ("id", "category", "prompt", "reference", "tests") if key not in data]
+        kind = data.get("kind", "codegen")
+        if kind not in _KINDS:
+            raise ValueError(f"unknown task kind {kind!r} (expected one of {sorted(_KINDS)})")
+        missing = [
+            key for key in _REQUIRED_FIELDS.get(kind, _BASE_REQUIRED_FIELDS)
+            if key not in data
+        ]
         if missing:
             raise ValueError(f"task is missing required fields: {', '.join(missing)}")
         tags = tuple(data.get("tags", ()))
@@ -65,13 +93,19 @@ class Task:
             id=data["id"],
             category=data["category"],
             prompt=data["prompt"],
-            reference=data["reference"],
-            tests={str(k): str(v) for k, v in data["tests"].items()},
+            reference=data.get("reference", ""),
+            tests={str(k): str(v) for k, v in (data.get("tests") or {}).items()},
             tags=tags,
             sql=data.get("sql"),
             sql_schema=data.get("sql_schema"),
             sql_setup=data.get("sql_setup"),
             expected=expected,
+            kind=kind,
+            environment_files=_string_map(data.get("environment_files")),
+            setup_cmd=data.get("setup_cmd"),
+            tests_cmd=data.get("tests_cmd"),
+            test_files=_string_map(data.get("test_files")),
+            max_steps=data.get("max_steps"),
         )
 
 
@@ -122,13 +156,25 @@ class Manifest:
         """
         directory = Path(tasks_dir or TASKS_DIR)
         manifest_path = directory / MANIFEST_FILENAME
+        entries: list[tuple[str, Path]] = []
         if manifest_path.exists():
             manifest = _load_json(manifest_path)
-            filenames = manifest.get("tasks", [])
-            tasks = [Task.from_dict(_load_json(directory / name)) for name in filenames]
+            entries = [(name, directory / name) for name in manifest.get("tasks", [])]
         else:
-            files = sorted(p for p in directory.glob("*.json") if p.name != MANIFEST_FILENAME)
-            tasks = [Task.from_dict(_load_json(path)) for path in files]
+            entries = [
+                (path.name, path)
+                for path in sorted(p for p in directory.glob("*.json") if p.name != MANIFEST_FILENAME)
+            ]
+        tasks: list[Task] = []
+        for name, path in entries:
+            try:
+                tasks.append(Task.from_dict(_load_json(path)))
+            except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                print(
+                    f"warning: skipping malformed task file {name}: {exc}",
+                    file=sys.stderr,
+                    flush=True,
+                )
         return cls(tasks)
 
 
