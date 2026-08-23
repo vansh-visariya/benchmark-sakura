@@ -28,6 +28,8 @@ Design notes
 """
 from __future__ import annotations
 
+import io
+import tarfile
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -35,6 +37,8 @@ from enum import Enum
 from config import Config
 
 DRIVER_PATH = "/opt/sakura/driver.py"
+WORKSPACE_DIR = "/workspace"
+TESTS_DIR = "/opt/tests"
 
 
 class ExecutionOutcome(str, Enum):
@@ -62,13 +66,15 @@ class SandboxUnavailable(RuntimeError):
 
 
 class Sandbox:
-    """Runs Python code in an isolated Docker container.
+    """Runs Python code and shell commands in an isolated Docker container.
 
     A single container is started once per benchmark run and reused across
     tasks (starting a fresh container per execution would dominate run time);
-    writable state is confined to a ``/tmp`` tmpfs that is cleared before every
-    execution. Use :meth:`execute_payload` for driver runs and :meth:`close`
-    to remove the container when done.
+    writable state is confined to two tmpfs mounts — ``/tmp`` for driver runs
+    and ``/workspace`` for terminal-agent episodes — both cleared before every
+    task. Use :meth:`execute_payload` for driver runs, :meth:`exec_shell` /
+    :meth:`install_files` for agent episodes, and :meth:`close` to remove the
+    container when done.
     """
 
     def __init__(self, config: Config):
@@ -114,8 +120,11 @@ class Sandbox:
             cpu_period=100000,
             pids_limit=self.config.sandbox_pids_limit,
             read_only=True,
-            tmpfs={"/tmp": "mode=1777"},
-            working_dir="/tmp",
+            tmpfs={
+                "/tmp": "mode=1777",
+                WORKSPACE_DIR: f"mode=1777,size={self.config.workspace_tmpfs_mb}m",
+            },
+            working_dir=WORKSPACE_DIR,
             security_opt=["no-new-privileges"],
             cap_drop=["ALL"],
         )
@@ -150,6 +159,83 @@ class Sandbox:
                 error=str(exc),
             )
         return self._finalize(exec_result, start)
+
+    def exec_shell(self, command: str, cwd: str = WORKSPACE_DIR) -> ExecutionResult:
+        """Run one shell command inside the sandbox and capture its outcome.
+
+        This is the terminal-agent execution primitive: the model's command is
+        passed as a single argument to ``/bin/sh -lc`` so it stays data, never a
+        shell-interpolated fragment of the harness command line. A per-step
+        timeout turns a runaway command into TIMEOUT instead of hanging the
+        episode. Exit code 137 means SIGKILL — either the memory limit or a
+        ``timeout -k`` escalation — and is reported as MEMORY_LIMIT.
+        """
+        if self._container is None:
+            raise SandboxUnavailable("Sandbox.start() was not called")
+
+        start = time.monotonic()
+        timeout_seconds = max(1.0, float(self.config.agent_step_timeout_seconds))
+        whole = int(timeout_seconds)
+        try:
+            exec_result = self._container.exec_run(
+                [
+                    "timeout",
+                    "-k",
+                    "5",
+                    f"{whole}s",
+                    "/bin/sh",
+                    "-lc",
+                    command,
+                ],
+                demux=True,
+                workdir=cwd,
+            )
+        except Exception as exc:  # noqa: BLE001 - docker API errors vary by version
+            return ExecutionResult(
+                outcome=ExecutionOutcome.SANDBOX_ERROR,
+                elapsed_seconds=time.monotonic() - start,
+                error=str(exc),
+            )
+        result = self._finalize(exec_result, start)
+        # Agents learn from stderr even on successful commands (warnings,
+        # compiler notes), so preserve it on the OK path too.
+        if result.outcome is ExecutionOutcome.OK:
+            _, stderr_b = exec_result.output or (b"", b"")
+            result.stderr = (stderr_b or b"").decode("utf-8", errors="replace")
+        # The generic timeout wrapper exits 124 for ANY inner timeout; label it
+        # as a step timeout so episode logs read clearly.
+        if result.outcome is ExecutionOutcome.TIMEOUT:
+            result.error = f"command exceeded the {whole}s step time limit"
+        return result
+
+    def install_files(self, files: dict[str, str], dest: str) -> None:
+        """Write ``files`` (relative path -> text content) under ``dest`` via tar.
+
+        Used for both the visible task environment (before an episode) and the
+        hidden test files (only ever installed AFTER the agent's last turn, so
+        they cannot be read mid-episode).
+        """
+        if self._container is None:
+            raise SandboxUnavailable("Sandbox.start() was not called")
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as tar:
+            for rel_path, content in files.items():
+                data = content.encode("utf-8")
+                info = tarfile.TarInfo(name=rel_path)
+                info.size = len(data)
+                info.mode = 0o644
+                tar.addfile(info, io.BytesIO(data))
+        self._container.put_archive(dest, stream.getvalue())
+
+    def reset_workspace(self) -> None:
+        """Wipe /workspace between tasks so episodes cannot observe each other."""
+        try:
+            self._container.exec_run(
+                ["sh", "-c", f"rm -rf {WORKSPACE_DIR}/* {WORKSPACE_DIR}/.[!.]* 2>/dev/null; true"],
+                demux=True,
+            )
+        except Exception:  # noqa: BLE001 - cleanup is best-effort
+            pass
 
     def _clean_tmp(self) -> None:
         """Clear the writable tmpfs so tasks cannot observe each other."""
