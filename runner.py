@@ -20,8 +20,19 @@ from config import Config
 from detect import HardwareReport, detect
 from executor import Executor, run_task
 from models import CompletionRequest, OllamaClient
-from scoring import RunMetrics, TaskResult, summarize, normalize_task_results
+from sandbox import ExecutionOutcome
+from scoring import (
+    RunMetrics,
+    TaskResult,
+    TestResult,
+    TestStatus,
+    score_task,
+    summarize,
+    normalize_task_results,
+)
 from task import Manifest, Task
+
+from agent import EpisodeResult, TerminalAgent
 
 
 @dataclass
@@ -61,6 +72,32 @@ def extract_code(text: str) -> str:
     if match:
         return match.group(1).strip()
     return text.strip()
+
+
+def _terminal_task_result(task: Task, episode: EpisodeResult) -> TaskResult:
+    """Map a terminal-agent episode into a scored :class:`TaskResult`.
+
+    ``solved is True`` -> a single PASS; ``solved is False`` -> FAIL (the tests
+    ran and the agent lost); ``solved is None`` -> ERROR (the environment itself
+    broke during scoring, so the agent is not at fault).
+    """
+    if episode.solved is True:
+        results = [TestResult(name="solution", status=TestStatus.PASS)]
+    elif episode.solved is False:
+        detail = episode.score_error or "tests failed"
+        results = [TestResult(name="solution", status=TestStatus.FAIL, detail=detail)]
+    else:
+        detail = episode.score_error or "scoring environment error"
+        results = [TestResult(name="solution", status=TestStatus.ERROR, detail=detail)]
+    return score_task(
+        task=task,
+        test_results=results,
+        steps_used=episode.steps_used,
+        wall_time_s=episode.wall_time_s,
+        tokens_prompt=episode.tokens_prompt,
+        tokens_output=episode.tokens_output,
+        trajectory=episode.trajectory,
+    )
 
 
 class Runner:
@@ -114,7 +151,12 @@ class Runner:
 
         executor = self._ensure_executor()
         try:
-            runs = [self._run_one(task, model, system_prompt, executor, think) for task in tasks]
+            runs: list[TaskRun] = []
+            for task in tasks:
+                try:
+                    runs.append(self._run_one(task, model, system_prompt, executor, think))
+                except Exception as exc:  # noqa: BLE001 - keep the run alive
+                    runs.append(self._error_task_run(task, exc))
         finally:
             executor.close()
 
@@ -123,7 +165,7 @@ class Runner:
         metrics = {**summary, **self._aggregate_metrics(runs)}
         return RunResult(
             model=model,
-            version="0.1.0",
+            version="0.2.0",
             hardware=self.hardware.to_dict(),
             metrics=metrics,
             task_results=self._serialize_task_runs(runs),
@@ -148,6 +190,8 @@ class Runner:
         self, task: Task, model: str, system_prompt: str, executor: Executor, think: bool
     ) -> TaskRun:
         """Run one task end to end and return scored outcome + timing."""
+        if task.kind == "terminal":
+            return self._run_terminal_one(task, model, executor)
         prompt = task.prompt
         if task.sql_schema:
             prompt = f"{task.prompt}\n\nDatabase schema:\n{task.sql_schema}"
@@ -163,6 +207,45 @@ class Runner:
                 output_tokens=completion.output_tokens,
                 prompt_tokens=completion.prompt_tokens,
             ),
+        )
+
+    def _run_terminal_one(self, task: Task, model: str, executor: Executor) -> TaskRun:
+        """Run a terminal-agent episode for a single task."""
+        if not executor.sandbox.running:
+            executor.sandbox.start()
+        executor.sandbox.reset_workspace()
+        if task.environment_files:
+            executor.sandbox.install_files(task.environment_files, dest="/workspace")
+        if task.setup_cmd:
+            setup = executor.sandbox.exec_shell(task.setup_cmd)
+            if setup.outcome is not ExecutionOutcome.OK:
+                return TaskRun(
+                    task_result=score_task(
+                        task,
+                        [TestResult(name="setup", status=TestStatus.ERROR, detail=setup.error)],
+                    ),
+                    metrics=RunMetrics(time_to_first_token=0.0, total_time=0.0, output_tokens=0),
+                )
+        episode = TerminalAgent(self.client, executor.sandbox, self.config).run_episode(task, model)
+        task_result = _terminal_task_result(task, episode)
+        return TaskRun(
+            task_result=task_result,
+            metrics=RunMetrics(
+                time_to_first_token=0.0,
+                total_time=episode.wall_time_s,
+                output_tokens=episode.tokens_output,
+                prompt_tokens=episode.tokens_prompt,
+            ),
+        )
+
+    def _error_task_run(self, task: Task, exc: BaseException) -> TaskRun:
+        """A failed task becomes an ERROR result rather than aborting the run."""
+        return TaskRun(
+            task_result=score_task(
+                task,
+                [TestResult(name="run", status=TestStatus.ERROR, detail=f"{type(exc).__name__}: {exc}")],
+            ),
+            metrics=RunMetrics(time_to_first_token=0.0, total_time=0.0, output_tokens=0),
         )
 
     def _aggregate_metrics(self, runs: list[TaskRun]) -> dict:

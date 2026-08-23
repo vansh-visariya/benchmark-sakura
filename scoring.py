@@ -31,13 +31,24 @@ class TestResult:
 
 @dataclass
 class TaskResult:
-    """The scored outcome of running one task."""
+    """The scored outcome of one task.
+
+    ``passed`` is true only when every test passed. The ``steps_used`` /
+    ``tokens_*`` / ``trajectory`` fields carry terminal-agent episode data and
+    are ``None`` for one-shot codegen/sql tasks, so legacy scoring and the
+    leaderboard keep working unchanged.
+    """
 
     task: Task
     test_results: list[TestResult]
     passed: bool = field(init=False)
     passed_tests: list[str] = field(default_factory=list, init=False)
     failed_tests: list[str] = field(default_factory=list, init=False)
+    steps_used: int | None = None
+    wall_time_s: float | None = None
+    tokens_prompt: int | None = None
+    tokens_output: int | None = None
+    trajectory: list[dict] | None = None
 
     def __post_init__(self) -> None:
         self.passed_tests = [tr.name for tr in self.test_results if tr.status is TestStatus.PASS]
@@ -71,9 +82,31 @@ class RunMetrics:
         }
 
 
-def score_task(task: Task, test_results: list[TestResult]) -> TaskResult:
-    """Build a :class:`TaskResult` from a task and its test outcomes."""
-    return TaskResult(task=task, test_results=test_results)
+def score_task(
+    task: Task,
+    test_results: list[TestResult],
+    *,
+    steps_used: int | None = None,
+    wall_time_s: float | None = None,
+    tokens_prompt: int | None = None,
+    tokens_output: int | None = None,
+    trajectory: list[dict] | None = None,
+) -> TaskResult:
+    """Build a :class:`TaskResult` from a task and its test outcomes.
+
+    The keyword-only ``steps_used``/``tokens_*``/``trajectory`` arguments carry
+    terminal-agent episode metrics; they default to ``None`` so the existing
+    codegen/sql call sites are unaffected.
+    """
+    return TaskResult(
+        task=task,
+        test_results=test_results,
+        steps_used=steps_used,
+        wall_time_s=wall_time_s,
+        tokens_prompt=tokens_prompt,
+        tokens_output=tokens_output,
+        trajectory=trajectory,
+    )
 
 
 def summarize(results: list[TaskResult]) -> dict:
@@ -96,24 +129,39 @@ def summarize(results: list[TaskResult]) -> dict:
     )
 
     by_category: dict[str, dict] = {}
+    total_steps = 0
+    terminal_count = 0
+    total_prompt_tokens = 0
+    total_output_tokens = 0
     for r in results:
         agg = by_category.setdefault(r.task.category, {"total": 0, "solved": 0})
         agg["total"] += 1
         if r.passed:
             agg["solved"] += 1
+        if r.steps_used is not None:
+            total_steps += r.steps_used
+            terminal_count += 1
+        if r.tokens_prompt is not None:
+            total_prompt_tokens += r.tokens_prompt
+        if r.tokens_output is not None:
+            total_output_tokens += r.tokens_output
 
     category_pass_rate = {
         cat: round(agg["solved"] / agg["total"], 4) if agg["total"] else 0.0
         for cat, agg in by_category.items()
     }
 
-    return {
+    summary = {
         "task_count": total,
         "solved_count": solved,
         "pass_rate": round(solved / total, 4),
         "errors": errors,
         "category_pass_rate": category_pass_rate,
     }
+    if terminal_count:
+        summary["avg_steps_per_task"] = round(total_steps / terminal_count, 1)
+        summary["total_agent_tokens"] = total_prompt_tokens + total_output_tokens
+    return summary
 
 
 def normalize_task_results(results: list[TaskResult]) -> list[dict]:
@@ -131,6 +179,10 @@ def normalize_task_results(results: list[TaskResult]) -> list[dict]:
                 for tr in r.test_results
                 if tr.status is not TestStatus.PASS and tr.detail
             ],
+            **({"steps_used": r.steps_used, "wall_time_s": r.wall_time_s,
+                "tokens_prompt": r.tokens_prompt, "tokens_output": r.tokens_output}
+               if r.steps_used is not None else {}),
+            **({"trajectory": r.trajectory} if r.trajectory else {}),
         }
         for r in results
     ]
