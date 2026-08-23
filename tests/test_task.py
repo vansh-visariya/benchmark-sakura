@@ -43,5 +43,5 @@ def test_manifest_select():
 
 def test_manifest_load_default():
     manifest = Manifest.load()
-    assert len(manifest) >= 17
+    assert len(manifest) >= 23
     assert "codegen_fibonacci" in manifest.ids()

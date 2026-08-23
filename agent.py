@@ -90,13 +90,24 @@ class TerminalAgent:
                 continue
 
             result = self.sandbox.exec_shell(command)
-            messages.append({"role": "tool", "content": _format_observation(result, command)})
+            stdout = _truncate(result.stdout)
+            stderr = _truncate(result.stderr)
+            messages.append(
+                {
+                    "role": "tool",
+                    "content": (
+                        f"exit_code: {result.exit_code}\n"
+                        f"stdout:\n{stdout}\n"
+                        f"stderr:\n{stderr}"
+                    ),
+                }
+            )
             trajectory.append(
                 {
                     "step": step + 1,
                     "command": command,
-                    "stdout": result.stdout[:MAX_OBS_CHARS],
-                    "stderr": result.stderr[:MAX_OBS_CHARS],
+                    "stdout": stdout,
+                    "stderr": stderr,
                     "exit_code": result.exit_code,
                 }
             )
@@ -173,15 +184,10 @@ def _extract_command(call) -> str | None:
     return None
 
 
-def _format_observation(result, command: str) -> str:
-    def _cut(value: str) -> str:
-        if len(value) > MAX_OBS_CHARS:
-            tail = len(value) - MAX_OBS_CHARS
-            return value[:MAX_OBS_CHARS] + f"\n...[truncated {tail} chars...]"
-        return value
-
-    return (
-        f"exit_code: {result.exit_code}\n"
-        f"stdout:\n{_cut(result.stdout)}\n"
-        f"stderr:\n{_cut(result.stderr)}"
-    )
+def _truncate(value: str, cap: int = MAX_OBS_CHARS) -> str:
+    """Clip output to ``cap`` chars, annotating truncation so the model knows it
+    saw a truncated view (never a silent, misleading truncation)."""
+    if len(value) > cap:
+        tail = len(value) - cap
+        return value[:cap] + f"\n...[truncated {tail} chars...]"
+    return value
