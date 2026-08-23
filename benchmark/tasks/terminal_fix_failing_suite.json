@@ -1,0 +1,17 @@
+{
+  "id": "terminal_fix_failing_suite",
+  "category": "bugfix",
+  "kind": "terminal",
+  "tags": ["all", "terminal", "bugfix", "medium"],
+  "prompt": "The package under /workspace has a failing test. Run `python -m pytest -q`, find the bug in the source, fix it, and confirm all tests (including hidden ones under /opt/tests) pass.",
+  "environment_files": {
+    "pkg/__init__.py": "",
+    "pkg/calc.py": "def add(a, b):\n    return a + b\n\ndef multiply(a, b):\n    # Bug: returns the sum instead of the product.\n    return a + b\n",
+    "tests/test_calc.py": "from pkg.calc import multiply\n\ndef test_multiply_basic():\n    assert multiply(2, 3) == 6\n\ndef test_multiply_negative():\n    assert multiply(-2, 3) == -6\n"
+  },
+  "setup_cmd": "cd /workspace && python -m pytest -q 2>&1 | tail -n 15 || true",
+  "tests_cmd": "cd /workspace && python -m pytest tests /opt/tests -q",
+  "test_files": {
+    "test_hidden.py": "from pkg.calc import multiply\n\ndef test_multiply_zero():\n    assert multiply(0, 99) == 0\n\ndef test_multiply_identity():\n    assert multiply(7, 1) == 7\n\ndef test_multiply_large():\n    assert multiply(1000, 1000) == 1000000\n"
+  }
+}

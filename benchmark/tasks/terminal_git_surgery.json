@@ -1,0 +1,15 @@
+{
+  "id": "terminal_git_surgery",
+  "category": "refactor",
+  "kind": "terminal",
+  "tags": ["all", "terminal", "refactor", "hard", "git"],
+  "prompt": "A regression was introduced in the most recent commit. Revert only that regression so /workspace/app.py prints 'v1' again. The git history and working tree should remain consistent.",
+  "environment_files": {
+    "app.py": "print(\"v2-bug\")"
+  },
+  "setup_cmd": "git init -q && git config user.email bench@example.com && git config user.name bench && printf 'print(\"v1\")\n' > app.py && git add app.py && git commit -q -m good && printf 'print(\"v2-bug\")\n' > app.py && git add app.py && git commit -q -m regression",
+  "tests_cmd": "python /opt/tests/check_git.py",
+  "test_files": {
+    "check_git.py": "import sys\ncontent = open('/workspace/app.py').read().strip()\nsys.exit(0 if content == 'print(\"v1\")' else 1)\n"
+  }
+}

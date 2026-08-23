@@ -1,7 +1,7 @@
 {
   "name": "benchmark-sakura starter set",
-  "version": "0.1.0",
-  "description": "A curated starter set of coding tasks for benchmarking small local coding models on consumer hardware. Categories: codegen, bugfix, sql, refactor.",
+  "version": "0.2.0",
+  "description": "A curated starter set of coding tasks for benchmarking small local coding models on consumer hardware. Categories: codegen, bugfix, sql, refactor, systems, protocol, plus terminal-agent episodes.",
   "tasks": [
     "codegen_fibonacci.json",
     "codegen_two_sum.json",
@@ -25,6 +25,10 @@
     "systems_lru_cache.json",
     "systems_token_bucket.json",
     "protocol_resp_parser.json",
-    "protocol_semver.json"
+    "protocol_semver.json",
+    "terminal_fix_failing_suite.json",
+    "terminal_log_triage.json",
+    "terminal_git_surgery.json",
+    "terminal_config_fix.json"
   ]
 }

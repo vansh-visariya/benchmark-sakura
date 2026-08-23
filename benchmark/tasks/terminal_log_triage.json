@@ -1,0 +1,14 @@
+{
+  "id": "terminal_log_triage",
+  "category": "bugfix",
+  "kind": "terminal",
+  "tags": ["all", "terminal", "bugfix", "hard"],
+  "prompt": "A service log lives at /workspace/app.log. Find the timestamp of the first ERROR event that occurs before an event containing 'connection refused', and write exactly that timestamp on a single line to /workspace/answer.txt.",
+  "environment_files": {
+    "app.log": "2024-04-01T12:33:00 INFO server started on port 8080\n2024-04-01T12:34:56 ERROR failed to parse header from upstream\n2024-04-01T12:35:10 WARN retry scheduled for /health\n2024-04-01T12:35:22 WARN retrying upstream /api/metrics\n2024-04-01T12:35:45 ERROR upstream connect failed: connection refused\n2024-04-01T12:36:00 INFO shutdown received\n"
+  },
+  "tests_cmd": "python /opt/tests/check_log.py",
+  "test_files": {
+    "check_log.py": "import sys\nexpected = '2024-04-01T12:34:56'\ntry:\n    got = open('/workspace/answer.txt').read().strip()\nexcept FileNotFoundError:\n    got = ''\nsys.exit(0 if got == expected else 1)\n"
+  }
+}

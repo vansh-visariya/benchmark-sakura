@@ -1,0 +1,13 @@
+{
+  "id": "terminal_config_fix",
+  "category": "systems",
+  "kind": "terminal",
+  "tags": ["all", "terminal", "systems", "easy"],
+  "prompt": "/workspace/server.sh exits with status 1 because config.json has the wrong database port. Inspect the failure, fix config.json so `sh server.sh` exits 0, and do not edit server.sh.",
+  "environment_files": {
+    "config.json": "{\n  \"port\": 5432\n}\n",
+    "server.sh": "#!/bin/sh\nPORT=$(python -c \"import json;print(json.load(open('config.json'))['port'])\")\nif [ \"$PORT\" = \"5433\" ]; then echo ok; else echo \\\"wrong port: $PORT\\\"; exit 1; fi\n"
+  },
+  "tests_cmd": "cd /workspace && sh server.sh",
+  "test_files": null
+}
