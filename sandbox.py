@@ -59,6 +59,7 @@ class ExecutionResult:
     stderr: str = ""
     elapsed_seconds: float = 0.0
     error: str = ""
+    exit_code: int | None = None
 
 
 class SandboxUnavailable(RuntimeError):
@@ -250,35 +251,38 @@ class Sandbox:
     def _finalize(self, exec_result, start: float) -> ExecutionResult:
         """Translate a container exit into a typed :class:`ExecutionResult`."""
         elapsed = time.monotonic() - start
+        code = exec_result.exit_code
         stdout_b, stderr_b = exec_result.output or (b"", b"")
         stdout = (stdout_b or b"").decode("utf-8", errors="replace")
         stderr = (stderr_b or b"").decode("utf-8", errors="replace")
 
-        if exec_result.exit_code == 124:
+        if code == 124:
             return ExecutionResult(
                 ExecutionOutcome.TIMEOUT,
                 stdout=stdout,
                 stderr=stderr,
                 elapsed_seconds=elapsed,
                 error="Execution exceeded the sandbox time limit",
+                exit_code=code,
             )
-        if exec_result.exit_code == 137:
+        if code == 137:
             return ExecutionResult(
                 ExecutionOutcome.MEMORY_LIMIT,
                 stdout=stdout,
                 stderr=stderr,
                 elapsed_seconds=elapsed,
                 error="Execution exceeded the sandbox memory limit",
+                exit_code=code,
             )
 
-        if exec_result.exit_code == 0:
-            return ExecutionResult(ExecutionOutcome.OK, stdout=stdout, elapsed_seconds=elapsed)
-        if exec_result.exit_code == 1 and _is_syntax(stderr):
+        if code == 0:
+            return ExecutionResult(ExecutionOutcome.OK, stdout=stdout, elapsed_seconds=elapsed, exit_code=code)
+        if code == 1 and _is_syntax(stderr):
             return ExecutionResult(
-                ExecutionOutcome.COMPILE_ERROR, stderr=stderr.strip(), elapsed_seconds=elapsed
+                ExecutionOutcome.COMPILE_ERROR, stderr=stderr.strip(), elapsed_seconds=elapsed, exit_code=code
             )
         return ExecutionResult(
-            ExecutionOutcome.RUNTIME_ERROR, stderr=stderr.strip(), elapsed_seconds=elapsed
+            ExecutionOutcome.RUNTIME_ERROR, stderr=stderr.strip(), elapsed_seconds=elapsed, exit_code=code
         )
 
     def close(self) -> None:
