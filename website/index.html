@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sakura — Benchmark for Local Coding Models</title>
-  <meta name="description" content="A reproducible benchmark for small coding models on consumer hardware. Measure accuracy, latency, and throughput across 23 tasks on your own machine.">
+  <meta name="description" content="A reproducible benchmark for small coding models on consumer hardware. Measure accuracy, latency, and throughput across 27 tasks on your own machine.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
       <a href="/leaderboard.html">Leaderboard</a>
       <a href="#benchmark">Benchmark</a>
       <a href="#why">Why it matters</a>
-      <a href="#tasks">Tasks (23)</a>
+      <a href="#tasks">Tasks (27)</a>
       <a href="#run">Get started</a>
     </nav>
   </header>
@@ -32,7 +32,7 @@
       <h1>Measure what local coding models actually do on <em>your</em> machine</h1>
       <p class="lead">
         Sakura is a reproducible benchmark for small LLMs running via Ollama on laptops and desktops.
-        It scores real code generation, bug fixes, SQL, refactoring, systems programming, and network protocols — with sandboxed execution and
+        It scores real code generation, bug fixes, SQL, refactoring, systems programming, and network protocols — plus terminal-agent episodes that drive a sandboxed shell — with sandboxed execution and
         hardware attestation so results mean something.
       </p>
       <div class="hero-actions">
@@ -42,11 +42,11 @@
       </div>
       <div class="hero-stats">
         <div class="stat">
-          <span class="stat-value">23</span>
+          <span class="stat-value">27</span>
           <span class="stat-label">Curated tasks</span>
         </div>
         <div class="stat">
-          <span class="stat-value">6</span>
+          <span class="stat-value">7</span>
           <span class="stat-label">Categories</span>
         </div>
         <div class="stat">
@@ -122,7 +122,7 @@
         </div>
         <ul class="benefits">
           <li>
-            <strong>Fair comparisons</strong> — Same 23 tasks, same Docker sandbox, same scoring rules for every model.
+            <strong>Fair comparisons</strong> — Same 27 tasks, same Docker sandbox, same scoring rules for every model. One-shot codegen tasks and terminal-agent episodes are both scored by hidden tests.
           </li>
           <li>
             <strong>Local-first privacy</strong> — Code runs on your machine; only aggregated results are shared if you submit.
@@ -141,7 +141,7 @@
     </section>
 
     <section id="tasks" class="section">
-      <h2>Task categories (23 tasks)</h2>
+      <h2>Task categories (27 tasks)</h2>
       <div class="task-grid">
         <div class="task-category">
           <span class="tag">codegen</span>
@@ -172,6 +172,11 @@
           <span class="tag">protocol</span>
           <h3>Protocols &amp; Specs (2)</h3>
           <p>Redis Serialization Protocol (RESP2) serializer/parser and Semantic Versioning 2.0.0 comparator.</p>
+        </div>
+        <div class="task-category">
+          <span class="tag">terminal</span>
+          <h3>Terminal-agent episodes (4)</h3>
+          <p>Multi-step agents that drive a sandboxed shell with hidden tests: fix failing test suites, triage logs, perform git surgery, and repair misconfigured services.</p>
         </div>
       </div>
     </section>
