@@ -18,6 +18,8 @@ pip install -e .
 # Run
 sakura list
 sakura run --model qwen2.5-coder:7b
+# Enable reasoning for models that support Ollama thinking
+sakura run --model qwen3.5:9b --think
 ```
 
 Results are written to `.results/` as JSON.
@@ -40,6 +42,7 @@ Submissions POST to `https://sakura.vaansh.dev/api/v1/submissions`. The website 
 | `sakura detect` | Print probed hardware (GPU, CPU, RAM) |
 | `sakura run -m MODEL` | Run the benchmark |
 | `sakura run -m MODEL --tags sql` | Run tasks matching tags |
+| `sakura run -m MODEL --think` | Enable model reasoning before code output |
 | `sakura run -m MODEL --submit` | Run and submit to leaderboard |
 | `sakura submit FILE.json` | Submit a saved `.results/` file |
 
@@ -47,10 +50,12 @@ Submissions POST to `https://sakura.vaansh.dev/api/v1/submissions`. The website 
 
 - **codegen** — algorithms and utilities
 - **bugfix** — common defect patterns
-- **sql** — queries against in-memory SQLite
+- **sql** — queries against in-memory SQLite; task schemas are included in the model prompt
 - **refactor** — structure and readability
 
 17 tasks ship in the starter set. Add more by dropping a JSON file in `benchmark/tasks/` and updating `manifest.json`.
+
+Use `--think` for reasoning-capable models when solving complex tasks. Reasoning is kept separate from the final code response, and its token and latency cost is included in the run metrics. Without `--think`, the benchmark uses a faster code-only request.
 
 ## Website & API
 
@@ -78,6 +83,11 @@ See [workers/README.md](workers/README.md) for full setup.
 | `SAKURA_DATABASE_URL` | `https://sakura.vaansh.dev` | Leaderboard API base |
 | `SAKURA_TASK_TAGS` | `all` | Default task filter |
 | `SAKURA_DOCKER_NETWORK` | `none` | Docker network mode for sandbox |
+| `SAKURA_SANDBOX_IMAGE` | `sakura-executor:0.2.0` | Docker image tag for sandbox |
+| `SAKURA_SANDBOX_TIMEOUT`| `30` | Wall-clock execution timeout in seconds |
+| `SAKURA_SANDBOX_MEM_MB` | `512` | Memory limit in MB |
+| `SAKURA_SANDBOX_CPUS`   | `0.5` | CPU quota allocation |
+| `SAKURA_SANDBOX_PIDS`   | `128` | Max process limit |
 
 ## License
 

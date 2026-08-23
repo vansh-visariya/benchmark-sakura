@@ -39,6 +39,7 @@ workers/.dev.vars
 Thumbs.db
 *.swp
 *~
+.commandcode
 
 # Wrangler build artifacts
 worker-configuration.d.ts

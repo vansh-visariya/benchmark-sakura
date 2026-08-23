@@ -101,6 +101,7 @@ class Runner:
         model: str,
         system_prompt: str = "You are a helpful coding assistant. Answer with the code only.",
         tags: tuple[str, ...] | None = None,
+        think: bool = False,
     ) -> RunResult:
         """Run the benchmark and return a :class:`RunResult`.
 
@@ -113,7 +114,7 @@ class Runner:
 
         executor = self._ensure_executor()
         try:
-            runs = [self._run_one(task, model, system_prompt, executor) for task in tasks]
+            runs = [self._run_one(task, model, system_prompt, executor, think) for task in tasks]
         finally:
             executor.close()
 
@@ -143,9 +144,14 @@ class Runner:
             self.executor = Executor(self.config)
         return self.executor
 
-    def _run_one(self, task: Task, model: str, system_prompt: str, executor: Executor) -> TaskRun:
+    def _run_one(
+        self, task: Task, model: str, system_prompt: str, executor: Executor, think: bool
+    ) -> TaskRun:
         """Run one task end to end and return scored outcome + timing."""
-        request = CompletionRequest(model=model, prompt=task.prompt, system=system_prompt)
+        prompt = task.prompt
+        if task.sql_schema:
+            prompt = f"{task.prompt}\n\nDatabase schema:\n{task.sql_schema}"
+        request = CompletionRequest(model=model, prompt=prompt, system=system_prompt, think=think)
         completion = self.client.complete(request)
         source = extract_code(completion.text)
         task_result = run_task(task, source, executor)

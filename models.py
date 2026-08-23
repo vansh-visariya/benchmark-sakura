@@ -32,6 +32,7 @@ class CompletionRequest:
     model: str
     prompt: str
     system: str = ""
+    think: bool = False
     options: dict[str, Any] = field(default_factory=dict)
 
 
@@ -77,6 +78,7 @@ class OllamaClient:
             "model": request.model,
             "messages": messages,
             "stream": True,
+            "think": request.think,
         }
         if request.options:
             payload["options"] = request.options

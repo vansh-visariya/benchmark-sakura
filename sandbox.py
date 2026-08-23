@@ -3,15 +3,24 @@
 A coding model can output anything — including shell commands, network calls,
 or code that reads the contributor's filesystem. Every task therefore executes
 its generated code (and the reference) inside an isolated Docker container with
-no network access, a hard CPU/mem limiter, and a wall-clock timeout. This
+no network access, hard CPU/memory/PID limits, and a wall-clock timeout. This
 protects the contributor's machine and makes results reproducible: code runs
 the same way everywhere.
 
 Design notes
 ------------
-* The container image is pinned and built once (see ``docker/build.sh``), not
-  pulled from the internet on every run.
-* The Python interpreter runs the code; no shell is exposed to the model output.
+* The container image is built once locally (see ``docker/build.sh``); it is
+  never pulled from a registry, so the executed code always matches the source
+  tree. A missing image is an error, not a silent download.
+* One long-lived container serves a whole benchmark run; ``/tmp`` is wiped
+  between executions so one task's state cannot leak into the next.
+* Each execution is wrapped in GNU ``timeout`` inside the container, so a
+  runaway model answer surfaces as :attr:`ExecutionOutcome.TIMEOUT` instead of
+  hanging the run.
+* The payload travels through the Docker API environment parameter (never a
+  shell argument) and the driver drops to an unprivileged user before running
+  model code, so model output cannot read the tests back out of the driver's
+  environment.
 * Resource limits come from the Docker daemon config, not from trusting the
   model to limit itself.
 * If Docker is unavailable the :class:`SandboxUnavailable` error propagates and
@@ -19,15 +28,13 @@ Design notes
 """
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass
 from enum import Enum
 
 from config import Config
-from task import Task
 
-DRIVER_PATH = "/tmp/driver.py"
+DRIVER_PATH = "/opt/sakura/driver.py"
 
 
 class ExecutionOutcome(str, Enum):
@@ -57,16 +64,22 @@ class SandboxUnavailable(RuntimeError):
 class Sandbox:
     """Runs Python code in an isolated Docker container.
 
-    The container is started per execution for isolation (so one task's global
-    state cannot leak into the next). Use :meth:`execute` for a single program
-    and :meth:`close` to stop the container when done.
+    A single container is started once per benchmark run and reused across
+    tasks (starting a fresh container per execution would dominate run time);
+    writable state is confined to a ``/tmp`` tmpfs that is cleared before every
+    execution. Use :meth:`execute_payload` for driver runs and :meth:`close`
+    to remove the container when done.
     """
 
-    def __init__(self, config: Config, image: str = "sakura-executor:0.1.0"):
+    def __init__(self, config: Config):
         self.config = config
-        self.image = image
+        self.image = config.sandbox_image
         self._container = None
         self._client = None
+
+    @property
+    def running(self) -> bool:
+        return self._container is not None
 
     def start(self) -> "Sandbox":
         """Start the container. Raises :class:`SandboxUnavailable` on failure."""
@@ -74,8 +87,8 @@ class Sandbox:
             import docker  # type: ignore[import-untyped]
         except ImportError:
             raise SandboxUnavailable(
-                "The docker Python package is not installed. Install it to run "
-                "unsandboxed code safely, or use a machine with Docker."
+                "The docker Python package is not installed. "
+                "Install dependencies with `pip install -e .`."
             )
 
         try:
@@ -87,70 +100,48 @@ class Sandbox:
         try:
             self._client.images.get(self.image)
         except docker.errors.ImageNotFound:  # type: ignore[attr-defined]
-            try:
-                self._client.images.pull(self.image)
-            except docker.errors.ImageNotFound:  # type: ignore[attr-defined]
-                raise SandboxUnavailable(
-                    f"Image {self.image} not found locally and cannot be pulled. "
-                    "Build it with docker/build.sh or docker/build.ps1 first."
-                ) from None
+            raise SandboxUnavailable(
+                f"Sandbox image {self.image} not found locally. Build it first "
+                "with docker/build.sh or docker/build.ps1."
+            ) from None
 
         self._container = self._client.containers.run(
             self.image,
             detach=True,
             network_mode=self.config.docker_network,
-            mem_limit="512m",
-            cpu_quota=50000,  # 0.5 CPU core
+            mem_limit=f"{self.config.sandbox_mem_limit_mb}m",
+            cpu_quota=int(self.config.sandbox_cpus * 100000),
             cpu_period=100000,
-            pids_limit=128,
+            pids_limit=self.config.sandbox_pids_limit,
             read_only=True,
             tmpfs={"/tmp": "mode=1777"},
             working_dir="/tmp",
+            security_opt=["no-new-privileges"],
+            cap_drop=["ALL"],
         )
         return self
 
-    def execute(self, source: str) -> ExecutionResult:
-        """Run ``source`` (a complete Python program) in the sandbox.
-
-        The program's stdout/stderr are captured and returned. Timeouts and
-        resource limits are translated into :class:`ExecutionOutcome` values so
-        the caller never has to inspect container internals.
-        """
-        if self._container is None:
-            raise SandboxUnavailable("Sandbox.start() was not called")
-
-        start = time.monotonic()
-        try:
-            exec_result = self._container.exec_run(
-                ["python", "-c", source],
-                demux=False,
-            )
-        except Exception as exc:  # noqa: BLE001 - docker API errors vary by version
-            return ExecutionResult(
-                outcome=ExecutionOutcome.SANDBOX_ERROR,
-                elapsed_seconds=time.monotonic() - start,
-                error=str(exc),
-            )
-        return self._finalize(exec_result, start)
-
     def execute_payload(self, payload: str) -> ExecutionResult:
-        """Run the sandbox driver with ``payload`` as JSON on stdin.
+        """Run the sandbox driver over a ``{"code": ..., "tests": {...}}`` payload.
 
-        The driver (baked into the image at ``/tmp/driver.py``) reads a
-        ``{"code": ..., "tests": {...}}`` object and prints a ``{"<test>": ...}``
-        map. Transporting via stdin — never as a shell argument — means untrusted
-        model output is only ever data, so it cannot break out of the driver's
-        JSON parsing.
+        The driver (baked into the image at ``/opt/sakura/driver.py``) prints a
+        sentinel-delimited JSON map of test outcomes. Transporting the payload
+        via the Docker API environment parameter — never through a shell —
+        means untrusted model output remains data for JSON parsing, and the
+        driver's privilege drop keeps it away from the model process.
         """
         if self._container is None:
             raise SandboxUnavailable("Sandbox.start() was not called")
 
+        self._clean_tmp()
+
         start = time.monotonic()
+        timeout_seconds = max(1, int(self.config.sandbox_timeout_seconds))
         try:
             exec_result = self._container.exec_run(
-                ["python", DRIVER_PATH],
-                input=payload.encode("utf-8"),
-                demux=False,
+                ["timeout", "-k", "5", f"{timeout_seconds}s", "python", DRIVER_PATH],
+                environment={"SAKURA_PAYLOAD": payload},
+                demux=True,
             )
         except Exception as exc:  # noqa: BLE001 - docker API errors vary by version
             return ExecutionResult(
@@ -159,21 +150,50 @@ class Sandbox:
                 error=str(exc),
             )
         return self._finalize(exec_result, start)
+
+    def _clean_tmp(self) -> None:
+        """Clear the writable tmpfs so tasks cannot observe each other."""
+        try:
+            self._container.exec_run(
+                ["sh", "-c", "rm -rf /tmp/* /tmp/.[!.]* 2>/dev/null; true"],
+                demux=True,
+            )
+        except Exception:  # noqa: BLE001 - cleanup is best-effort
+            pass
 
     def _finalize(self, exec_result, start: float) -> ExecutionResult:
         """Translate a container exit into a typed :class:`ExecutionResult`."""
         elapsed = time.monotonic() - start
-        if exec_result.exit_code == 124:
-            return ExecutionResult(ExecutionOutcome.TIMEOUT, elapsed_seconds=elapsed, error="Execution exceeded the sandbox time limit")
-        if exec_result.exit_code == 137:
-            return ExecutionResult(ExecutionOutcome.MEMORY_LIMIT, elapsed_seconds=elapsed, error="Execution exceeded the sandbox memory limit")
+        stdout_b, stderr_b = exec_result.output or (b"", b"")
+        stdout = (stdout_b or b"").decode("utf-8", errors="replace")
+        stderr = (stderr_b or b"").decode("utf-8", errors="replace")
 
-        output = exec_result.output.decode("utf-8", errors="replace")
+        if exec_result.exit_code == 124:
+            return ExecutionResult(
+                ExecutionOutcome.TIMEOUT,
+                stdout=stdout,
+                stderr=stderr,
+                elapsed_seconds=elapsed,
+                error="Execution exceeded the sandbox time limit",
+            )
+        if exec_result.exit_code == 137:
+            return ExecutionResult(
+                ExecutionOutcome.MEMORY_LIMIT,
+                stdout=stdout,
+                stderr=stderr,
+                elapsed_seconds=elapsed,
+                error="Execution exceeded the sandbox memory limit",
+            )
+
         if exec_result.exit_code == 0:
-            return ExecutionResult(ExecutionOutcome.OK, stdout=output, elapsed_seconds=elapsed)
-        if exec_result.exit_code == 1 and _is_syntax(output):
-            return ExecutionResult(ExecutionOutcome.COMPILE_ERROR, stderr=output.strip(), elapsed_seconds=elapsed)
-        return ExecutionResult(ExecutionOutcome.RUNTIME_ERROR, stderr=output.strip(), elapsed_seconds=elapsed)
+            return ExecutionResult(ExecutionOutcome.OK, stdout=stdout, elapsed_seconds=elapsed)
+        if exec_result.exit_code == 1 and _is_syntax(stderr):
+            return ExecutionResult(
+                ExecutionOutcome.COMPILE_ERROR, stderr=stderr.strip(), elapsed_seconds=elapsed
+            )
+        return ExecutionResult(
+            ExecutionOutcome.RUNTIME_ERROR, stderr=stderr.strip(), elapsed_seconds=elapsed
+        )
 
     def close(self) -> None:
         if self._container is not None:

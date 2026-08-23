@@ -2,8 +2,8 @@
   "id": "bugfix_null_pointer",
   "category": "bugfix",
   "tags": ["all", "bugfix", "medium"],
-  "prompt": "The function `first_upper(text)` raises an AttributeError when `text` is None. Fix it to return an empty string in that case.\n\n```python\ndef first_upper(text):\n    return text[0].upper()\n```\n\nExpected: first_upper(None) == ''; first_upper('hello') == 'H'",
-  "reference": "def first_upper(text):\n    if text is None:\n        return ''\n    return text[0].upper()\n",
+  "prompt": "The function `first_upper(text)` raises an exception when `text` is None or empty. Fix it to return an empty string in those cases.\n\n```python\ndef first_upper(text):\n    return text[0].upper()\n```\n\nExpected: first_upper(None) == ''; first_upper('') == ''; first_upper('hello') == 'H'",
+  "reference": "def first_upper(text):\n    if not text:\n        return ''\n    return text[0].upper()\n",
   "tests": {
     "test_none": "assert first_upper(None) == ''\n",
     "test_basic": "assert first_upper('hello') == 'H'\n",

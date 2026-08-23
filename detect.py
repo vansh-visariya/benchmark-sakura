@@ -101,7 +101,19 @@ def _iso_now() -> str:
 
 def _read_cpu_model() -> str:
     if sys.platform == "win32":
-        # Windows exposes the CPU model through WMI; fall back to processor name.
+        try:
+            import winreg
+
+            key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+            )
+            val, _ = winreg.QueryValueEx(key, "ProcessorNameString")
+            winreg.CloseKey(key)
+            if val:
+                return str(val).strip()
+        except Exception:
+            pass
         try:
             import wmi  # type: ignore[import-untyped]
 
@@ -123,7 +135,8 @@ def _read_cpu_model() -> str:
 
 def _read_os_release() -> str:
     if sys.platform == "win32":
-        return sys.getwindowsversion().platform_version
+        v = sys.getwindowsversion()
+        return f"{v.major}.{v.minor}.{v.build}"
     out = _safe_run(["cat", "/etc/os-release"])
     if out:
         for line in out.splitlines():

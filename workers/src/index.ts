@@ -72,11 +72,50 @@ function validateSubmission(body: unknown): SubmissionPayload | string {
   if (!payload.version || typeof payload.version !== "string") return "version is required";
   if (!payload.hardware || typeof payload.hardware !== "object") return "hardware is required";
   if (!payload.metrics || typeof payload.metrics !== "object") return "metrics is required";
-  if (!Array.isArray(payload.task_results)) return "task_results must be an array";
+  if (!Array.isArray(payload.task_results) || payload.task_results.length === 0) {
+    return "task_results must be a non-empty array";
+  }
+
   const passRate = payload.metrics.pass_rate;
   if (typeof passRate !== "number" || passRate < 0 || passRate > 1) {
     return "metrics.pass_rate must be a number between 0 and 1";
   }
+
+  const solvedCount = payload.metrics.solved_count;
+  if (typeof solvedCount === "number" && solvedCount < 0) {
+    return "metrics.solved_count cannot be negative";
+  }
+
+  const taskCount = payload.metrics.task_count;
+  if (typeof taskCount === "number" && taskCount <= 0) {
+    return "metrics.task_count must be greater than 0";
+  }
+
+  const throughput = payload.metrics.throughput_tokens_per_sec;
+  if (throughput != null && (typeof throughput !== "number" || throughput < 0)) {
+    return "metrics.throughput_tokens_per_sec must be non-negative";
+  }
+
+  const ttft = payload.metrics.avg_time_to_first_token_ms;
+  if (ttft != null && (typeof ttft !== "number" || ttft < 0)) {
+    return "metrics.avg_time_to_first_token_ms must be non-negative";
+  }
+
+  const totalTime = payload.metrics.total_time_s;
+  if (totalTime != null && (typeof totalTime !== "number" || totalTime < 0)) {
+    return "metrics.total_time_s must be non-negative";
+  }
+
+  const cpuCores = payload.hardware.cpu_cores;
+  if (cpuCores != null && (typeof cpuCores !== "number" || cpuCores <= 0)) {
+    return "hardware.cpu_cores must be positive";
+  }
+
+  const ramTotal = payload.hardware.ram_total_gb;
+  if (ramTotal != null && (typeof ramTotal !== "number" || ramTotal <= 0)) {
+    return "hardware.ram_total_gb must be positive";
+  }
+
   return payload;
 }
 
@@ -189,11 +228,13 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
+      const origin = request.headers.get("Origin") ?? env.ALLOWED_ORIGIN;
+      const cors = corsHeaders(origin, env.ALLOWED_ORIGIN);
       try {
         return await handleApi(request, env);
       } catch (err) {
         const message = err instanceof Error ? err.message : "internal error";
-        return json({ error: message }, 500);
+        return json({ error: message }, 500, cors);
       }
     }
 

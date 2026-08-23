@@ -13,6 +13,7 @@ from task import Task
 
 
 class TestStatus(str, Enum):
+    __test__ = False
     PASS = "pass"
     FAIL = "fail"
     ERROR = "error"  # test raised an exception or timed out
@@ -22,6 +23,7 @@ class TestStatus(str, Enum):
 class TestResult:
     """The outcome of running one test against one piece of generated code."""
 
+    __test__ = False
     name: str
     status: TestStatus
     detail: str = ""
@@ -123,6 +125,11 @@ def normalize_task_results(results: list[TaskResult]) -> list[dict]:
             "passed": r.passed,
             "passed_tests": r.passed_tests,
             "failed_tests": r.failed_tests,
+            "test_details": [
+                {"name": tr.name, "status": tr.status.value, "detail": tr.detail}
+                for tr in r.test_results
+                if tr.status is not TestStatus.PASS and tr.detail
+            ],
         }
         for r in results
     ]

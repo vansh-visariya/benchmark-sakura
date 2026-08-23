@@ -6,6 +6,7 @@
   "sql_schema": "CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);",
   "sql_setup": "INSERT INTO products VALUES (1, 'Laptop', 'Electronics', 1000.0), (2, 'Phone', 'Electronics', 500.0), (3, 'Desk', 'Furniture', 200.0), (4, 'Chair', 'Furniture', 100.0), (5, 'Tablet', 'Electronics', 300.0);",
   "reference": "SELECT category, COUNT(*) AS product_count, AVG(price) AS avg_price\nFROM products\nGROUP BY category\nORDER BY product_count DESC;",
+  "expected": [["Electronics", 3, 600.0], ["Furniture", 2, 150.0]],
   "tests": {
     "main": "[['Electronics', 3, 600.0], ['Furniture', 2, 150.0]]"
   }

@@ -9,6 +9,7 @@ from pathlib import Path
 from config import load_config
 from detect import detect
 from runner import Runner
+from sandbox import SandboxUnavailable
 from submit import submit_file, submit_result
 
 
@@ -37,6 +38,11 @@ def main(argv: list[str] | None = None) -> int:
         default="You are a helpful coding assistant. Answer with the code only.",
         help="System prompt sent to the model",
     )
+    run_parser.add_argument(
+        "--think",
+        action="store_true",
+        help="Allow the model to reason before returning its code",
+    )
 
     sub.add_parser("list", help="List tasks that would run for the configured tags")
     sub.add_parser("detect", help="Print detected hardware (anti-cheat probe)")
@@ -64,7 +70,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         tags = tuple(t.strip() for t in args.tags.split(",") if t.strip())
         print(f"Running {len(runner.manifest.select(tags))} task(s) with model {args.model!r}...")
-        result = runner.run(model=args.model, system_prompt=args.system, tags=tags)
+        try:
+            result = runner.run(model=args.model, system_prompt=args.system, tags=tags, think=args.think)
+        except SandboxUnavailable as exc:
+            print(f"\n[Error] Sandbox unavailable: {exc}\n", file=sys.stderr)
+            print("Make sure Docker is running and the sandbox image is built (`docker/build.ps1` or `docker/build.sh`).", file=sys.stderr)
+            return 1
+        except Exception as exc:
+            print(f"\n[Error] Run failed: {exc}", file=sys.stderr)
+            return 1
         output_path = runner.save_result(
             result,
             path=Path(args.output) if args.output else None,
