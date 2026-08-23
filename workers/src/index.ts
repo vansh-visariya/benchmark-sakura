@@ -150,18 +150,55 @@ async function insertSubmission(env: Env, payload: SubmissionPayload) {
   return id;
 }
 
-async function leaderboard(env: Env, limit = 50): Promise<LeaderboardRow[]> {
-  const result = await env.DB.prepare(
-    `SELECT id, model, pass_rate, solved_count, task_count,
-            throughput, avg_ttft_ms, gpu_name, gpu_vram_gb,
-            cpu_cores, ram_gb, platform, created_at
-     FROM submissions
-     ORDER BY pass_rate DESC, throughput DESC, created_at DESC
-     LIMIT ?`
-  )
-    .bind(limit)
-    .all<LeaderboardRow>();
-  return result.results ?? [];
+async function leaderboard(
+  env: Env,
+  options: {
+    limit?: number;
+    offset?: number;
+    model?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  } = {}
+): Promise<{ entries: LeaderboardRow[]; total_count: number }> {
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const model = options.model?.trim() || "";
+
+  const sortCols: Record<string, string> = {
+    pass_rate: "pass_rate",
+    throughput: "throughput",
+    avg_ttft_ms: "avg_ttft_ms",
+    created_at: "created_at",
+    solved_count: "solved_count",
+  };
+  const sortCol = sortCols[options.sortBy ?? "pass_rate"] ?? "pass_rate";
+  const sortDir = options.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+  let whereClause = "";
+  const params: unknown[] = [];
+  if (model) {
+    whereClause = "WHERE model LIKE ?";
+    params.push(`%${model}%`);
+  }
+
+  const countQuery = `SELECT COUNT(*) as cnt FROM submissions ${whereClause}`;
+  const countStmt = env.DB.prepare(countQuery);
+  const totalRow = await (params.length ? countStmt.bind(...params) : countStmt).first<{ cnt: number }>();
+  const total_count = totalRow?.cnt ?? 0;
+
+  const query = `
+    SELECT id, model, pass_rate, solved_count, task_count,
+           throughput, avg_ttft_ms, gpu_name, gpu_vram_gb,
+           cpu_cores, ram_gb, platform, created_at
+    FROM submissions
+    ${whereClause}
+    ORDER BY ${sortCol} ${sortDir}, throughput DESC, created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+  const queryParams = [...params, limit, offset];
+  const result = await env.DB.prepare(query).bind(...queryParams).all<LeaderboardRow>();
+
+  return { entries: result.results ?? [], total_count };
 }
 
 async function getSubmission(env: Env, id: string) {
@@ -191,14 +228,25 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       return json({ error: validated }, 400, cors);
     }
     const id = await insertSubmission(env, validated);
-    const viewUrl = `${env.ALLOWED_ORIGIN}/#leaderboard`;
+    const viewUrl = `${env.ALLOWED_ORIGIN}/leaderboard?id=${id}`;
     return json({ id, url: viewUrl }, 201, cors);
   }
 
   if (request.method === "GET" && url.pathname === "/api/v1/leaderboard") {
     const limit = Math.min(Number(url.searchParams.get("limit") ?? "50"), 100);
-    const entries = await leaderboard(env, limit);
-    return json({ entries, updated_at: new Date().toISOString() }, 200, cors);
+    const offset = Number(url.searchParams.get("offset") ?? "0");
+    const model = url.searchParams.get("model") ?? undefined;
+    const sortBy = url.searchParams.get("sort_by") ?? undefined;
+    const sortOrder = url.searchParams.get("sort_order") ?? undefined;
+
+    const { entries, total_count } = await leaderboard(env, {
+      limit,
+      offset,
+      model,
+      sortBy,
+      sortOrder,
+    });
+    return json({ entries, total_count, offset, limit, updated_at: new Date().toISOString() }, 200, cors);
   }
 
   if (request.method === "GET" && url.pathname.startsWith("/api/v1/submissions/")) {
@@ -213,8 +261,12 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
 async function serveWebsite(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const assetPath =
-    url.pathname === "/" || url.pathname === "/index.html" ? "/index.html" : url.pathname;
+  let assetPath = url.pathname;
+  if (assetPath === "/" || assetPath === "/index.html") {
+    assetPath = "/index.html";
+  } else if (assetPath === "/leaderboard" || assetPath === "/leaderboard/") {
+    assetPath = "/leaderboard.html";
+  }
   const assetRequest = new Request(new URL(assetPath, url.origin).toString(), {
     method: request.method,
     headers: request.headers,
@@ -245,3 +297,4 @@ export default {
     return new Response("Method not allowed", { status: 405 });
   },
 };
+

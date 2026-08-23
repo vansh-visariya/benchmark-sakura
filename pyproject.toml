@@ -23,9 +23,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 py-modules = [
     "cli",
+    "compare",
     "config",
     "detect",
     "models",
+    "report",
     "runner",
     "sandbox",
     "scoring",
@@ -35,3 +37,7 @@ py-modules = [
 
 [tool.setuptools.packages.find]
 include = ["executor*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+

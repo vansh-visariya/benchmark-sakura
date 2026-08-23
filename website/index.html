@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sakura — Benchmark for Local Coding Models</title>
-  <meta name="description" content="A reproducible benchmark for small coding models on consumer hardware. Measure accuracy, latency, and throughput on your own machine.">
+  <meta name="description" content="A reproducible benchmark for small coding models on consumer hardware. Measure accuracy, latency, and throughput across 23 tasks on your own machine.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -18,10 +18,10 @@
   <header class="site-header">
     <a class="logo" href="/">Sakura</a>
     <nav>
-      <a href="#leaderboard">Leaderboard</a>
+      <a href="/leaderboard.html">Leaderboard</a>
       <a href="#benchmark">Benchmark</a>
       <a href="#why">Why it matters</a>
-      <a href="#tasks">Tasks</a>
+      <a href="#tasks">Tasks (23)</a>
       <a href="#run">Get started</a>
     </nav>
   </header>
@@ -32,20 +32,21 @@
       <h1>Measure what local coding models actually do on <em>your</em> machine</h1>
       <p class="lead">
         Sakura is a reproducible benchmark for small LLMs running via Ollama on laptops and desktops.
-        It scores real code generation, bug fixes, SQL, and refactors — with sandboxed execution and
+        It scores real code generation, bug fixes, SQL, refactoring, systems programming, and network protocols — with sandboxed execution and
         hardware attestation so results mean something.
       </p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="https://github.com/vansh-visariya/benchmark-sakura">View on GitHub</a>
+        <a class="btn btn-primary" href="/leaderboard.html">View Community Leaderboard</a>
+        <a class="btn btn-secondary" href="https://github.com/vansh-visariya/benchmark-sakura">GitHub Repo</a>
         <a class="btn btn-secondary" href="#run">Run locally</a>
       </div>
       <div class="hero-stats">
         <div class="stat">
-          <span class="stat-value">17</span>
+          <span class="stat-value">23</span>
           <span class="stat-label">Curated tasks</span>
         </div>
         <div class="stat">
-          <span class="stat-value">4</span>
+          <span class="stat-value">6</span>
           <span class="stat-label">Categories</span>
         </div>
         <div class="stat">
@@ -58,8 +59,8 @@
     <section id="leaderboard" class="section section-alt">
       <div class="leaderboard-header">
         <div>
-          <h2>Community leaderboard</h2>
-          <p class="section-intro">Live results from contributors who run Sakura locally and submit with <code>--submit</code>. The page polls the API every minute — no page reload needed.</p>
+          <h2>Leaderboard Snapshot</h2>
+          <p class="section-intro">Top performing models submitted by the community. Run locally and submit with <code>--submit</code>.</p>
         </div>
         <p id="leaderboard-meta" class="leaderboard-meta">Loading…</p>
       </div>
@@ -76,9 +77,14 @@
             </tr>
           </thead>
           <tbody id="leaderboard-body">
-            <tr><td colspan="6" class="empty-row">Loading leaderboard…</td></tr>
+            <tr><td colspan="6" class="empty-row">Loading leaderboard snapshot…</td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="leaderboard-footer-cta">
+        <a class="btn btn-primary" href="/leaderboard.html">
+          Explore Full Leaderboard &amp; Side-by-Side Model Comparison &rarr;
+        </a>
       </div>
     </section>
 
@@ -87,11 +93,11 @@
       <div class="cards">
         <article class="card">
           <h3>Accuracy</h3>
-          <p>Pass rate across codegen, bugfix, SQL, and refactor tasks. A task counts only when every test passes.</p>
+          <p>Pass rate across codegen, bugfix, SQL, refactoring, systems, and protocols. A task counts only when every test passes.</p>
         </article>
         <article class="card">
           <h3>Latency</h3>
-          <p>Time to first token and total generation time per task, streamed from your Ollama instance.</p>
+          <p>Time to first token (TTFT) and total generation time per task, streamed from your Ollama instance.</p>
         </article>
         <article class="card">
           <h3>Throughput</h3>
@@ -116,13 +122,13 @@
         </div>
         <ul class="benefits">
           <li>
-            <strong>Fair comparisons</strong> — Same 17 tasks, same sandbox, same scoring rules for every model.
+            <strong>Fair comparisons</strong> — Same 23 tasks, same Docker sandbox, same scoring rules for every model.
           </li>
           <li>
             <strong>Local-first privacy</strong> — Code runs on your machine; only aggregated results are shared if you submit.
           </li>
           <li>
-            <strong>Small-model focus</strong> — Built for 7B-class models on consumer VRAM, not datacenter clusters.
+            <strong>Small-model focus</strong> — Built for 7B/9B/14B-class models on consumer VRAM, not datacenter clusters.
           </li>
           <li>
             <strong>Transparent tasks</strong> — Every prompt, test, and reference solution lives in the open repo.
@@ -135,27 +141,37 @@
     </section>
 
     <section id="tasks" class="section">
-      <h2>Task categories</h2>
+      <h2>Task categories (23 tasks)</h2>
       <div class="task-grid">
         <div class="task-category">
           <span class="tag">codegen</span>
-          <h3>Code generation</h3>
-          <p>Classic algorithms and utilities — fibonacci, two sum, palindrome, linked lists, JSON parsing.</p>
+          <h3>Code generation (6)</h3>
+          <p>Algorithms and utilities — Fibonacci, two sum, palindrome, linked lists, max subarray, JSON-to-CSV.</p>
         </div>
         <div class="task-category">
           <span class="tag">bugfix</span>
-          <h3>Bug fixing</h3>
+          <h3>Bug fixing (4)</h3>
           <p>Off-by-one errors, divide-by-zero, null handling, and regex catastrophic backtracking.</p>
         </div>
         <div class="task-category">
           <span class="tag">sql</span>
-          <h3>SQL</h3>
-          <p>Joins, aggregates, top-N per group, and recursive hierarchies against in-memory SQLite.</p>
+          <h3>SQL (6)</h3>
+          <p>Joins, aggregates, top-N per group, recursive hierarchies, sessionization, and gaps &amp; islands streaks.</p>
         </div>
         <div class="task-category">
           <span class="tag">refactor</span>
-          <h3>Refactoring</h3>
-          <p>Extract method, flatten nested logic, and replace conditionals with clearer structure.</p>
+          <h3>Refactoring (3)</h3>
+          <p>Extract method, flatten nested logic, and replace conditionals with cleaner structure.</p>
+        </div>
+        <div class="task-category">
+          <span class="tag">systems</span>
+          <h3>Systems &amp; State (2)</h3>
+          <p>LRU cache with eviction policies and token bucket rate limiters with token refill math.</p>
+        </div>
+        <div class="task-category">
+          <span class="tag">protocol</span>
+          <h3>Protocols &amp; Specs (2)</h3>
+          <p>Redis Serialization Protocol (RESP2) serializer/parser and Semantic Versioning 2.0.0 comparator.</p>
         </div>
       </div>
     </section>
@@ -171,16 +187,23 @@ pip install -e .
 # Build the Docker sandbox (one time)
 ./docker/build.sh   # or: .\docker\build.ps1 on Windows
 
-# List tasks and run
-sakura list
-sakura run --model qwen2.5-coder:7b
-sakura run --model deepseek-coder:6.7b --tags codegen --submit</code></pre>
-      <p class="note">Results are saved under <code>.results/</code>. Add <code>--submit</code> to POST scores to <code>sakura.vaansh.dev/api/v1/submissions</code> — they appear on the leaderboard above within a minute.</p>
+# List tasks and filter by category or difficulty
+sakura list -c systems
+sakura list -d hard
+
+# Run benchmark and submit
+sakura run --model qwen2.5-coder:7b --submit
+sakura run --model deepseek-coder:6.7b --category codegen
+
+# Compare two runs or generate markdown report
+sakura compare .results/run_qwen.json .results/run_deepseek.json
+sakura report .results/run_qwen.json -o report.md</code></pre>
+      <p class="note">Results are saved under <code>.results/</code>. Add <code>--submit</code> to POST scores to <code>sakura.vaansh.dev/api/v1/submissions</code> — they appear on the leaderboard within a minute.</p>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>MIT licensed · <a href="https://github.com/vansh-visariya/benchmark-sakura">benchmark-sakura</a></p>
+    <p>MIT licensed · <a href="https://github.com/vansh-visariya/benchmark-sakura">benchmark-sakura on GitHub</a></p>
     <p>sakura.vaansh.dev</p>
   </footer>
   <script src="leaderboard.js"></script>

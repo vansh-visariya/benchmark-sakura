@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Community Leaderboard — Sakura Benchmark</title>
+  <meta name="description" content="Live benchmark leaderboard for local coding LLMs evaluated across 23 coding, systems, SQL, and protocol tasks on consumer hardware.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-leaderboard">
+  <div class="blossom blossom-1" aria-hidden="true"></div>
+  <div class="blossom blossom-2" aria-hidden="true"></div>
+  <div class="blossom blossom-3" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="logo" href="/">Sakura</a>
+    <nav>
+      <a href="/leaderboard.html" class="active">Leaderboard</a>
+      <a href="/#benchmark">Benchmark</a>
+      <a href="/#why">Why it matters</a>
+      <a href="/#tasks">Tasks (23)</a>
+      <a href="/#run">Get started</a>
+    </nav>
+  </header>
+
+  <main class="main-wide">
+    <div class="leaderboard-page-header">
+      <div class="header-content">
+        <p class="eyebrow">Sakura Open Benchmark</p>
+        <h1>Community Leaderboard</h1>
+        <p class="lead">
+          Verified performance of small &amp; local coding models on real consumer hardware across 23 tasks.
+          Filter by category, sort by throughput or accuracy, and select models to compare side-by-side.
+        </p>
+      </div>
+      <div class="header-actions">
+        <a class="btn btn-secondary" href="/#run">Run on your machine</a>
+        <button id="btn-refresh" class="btn btn-ghost" title="Refresh data">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-card">
+      <div class="controls-row">
+        <!-- Search -->
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="filter-search" class="search-input" placeholder="Search model name or hardware..." autocomplete="off">
+          <button id="clear-search" class="search-clear hidden" aria-label="Clear search">&times;</button>
+        </div>
+
+        <!-- Filter category tags -->
+        <div class="category-pills" id="category-pills">
+          <button class="pill active" data-cat="all">All (23)</button>
+          <button class="pill" data-cat="codegen">Codegen (6)</button>
+          <button class="pill" data-cat="bugfix">Bugfix (4)</button>
+          <button class="pill" data-cat="sql">SQL (6)</button>
+          <button class="pill" data-cat="refactor">Refactor (3)</button>
+          <button class="pill" data-cat="systems">Systems (2)</button>
+          <button class="pill" data-cat="protocol">Protocol (2)</button>
+        </div>
+      </div>
+
+      <div class="controls-meta-row">
+        <div class="meta-left">
+          <span id="results-count" class="results-count">Loading results...</span>
+        </div>
+        <div class="meta-right">
+          <label class="sort-label">Sort by:
+            <select id="sort-select" class="select-dropdown">
+              <option value="pass_rate-desc">Pass Rate (High to Low)</option>
+              <option value="throughput-desc">Throughput (Fast to Slow)</option>
+              <option value="avg_ttft_ms-asc">Latency / TTFT (Lowest)</option>
+              <option value="created_at-desc">Latest Submission</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="table-wrap main-table-wrap">
+      <table class="leaderboard-table detailed-table" id="leaderboard-table">
+        <thead>
+          <tr>
+            <th class="col-compare" title="Select models to compare side-by-side">Compare</th>
+            <th class="col-rank sortable" data-sort="rank">#</th>
+            <th class="col-model sortable" data-sort="model">Model <span class="sort-icon"></span></th>
+            <th class="col-pass sortable active-sort" data-sort="pass_rate">Overall Pass Rate <span class="sort-icon">▼</span></th>
+            <th class="col-speed sortable" data-sort="throughput">Throughput <span class="sort-icon"></span></th>
+            <th class="col-ttft sortable" data-sort="avg_ttft_ms">TTFT <span class="sort-icon"></span></th>
+            <th class="col-hardware">Probed Hardware</th>
+            <th class="col-date sortable" data-sort="created_at">Date <span class="sort-icon"></span></th>
+            <th class="col-expand"></th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <tr><td colspan="9" class="empty-row">Loading benchmark entries...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar" id="pagination-bar">
+      <button class="btn btn-secondary btn-sm" id="btn-prev-page" disabled>&larr; Previous</button>
+      <span class="page-indicator" id="page-indicator">Page 1 of 1</span>
+      <button class="btn btn-secondary btn-sm" id="btn-next-page" disabled>Next &rarr;</button>
+    </div>
+
+    <!-- Floating Compare Dock -->
+    <div class="compare-dock hidden" id="compare-dock">
+      <div class="compare-dock-inner">
+        <div class="compare-dock-info">
+          <span class="compare-badge">Compare</span>
+          <span id="compare-selection-text">Select up to 2 models to compare</span>
+        </div>
+        <div class="compare-dock-actions">
+          <button id="btn-clear-compare" class="btn btn-ghost btn-sm">Clear</button>
+          <button id="btn-open-compare" class="btn btn-primary btn-sm" disabled>Compare (0/2)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compare Modal -->
+    <div class="modal-backdrop hidden" id="compare-modal-backdrop">
+      <div class="modal-dialog modal-xl" id="compare-modal">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Side-by-Side Analysis</p>
+            <h2 id="compare-modal-title">Model Comparison</h2>
+          </div>
+          <button class="btn-close" id="btn-close-modal" aria-label="Close comparison modal">&times;</button>
+        </div>
+        <div class="modal-body" id="compare-modal-body">
+          <div class="loading-state">Loading comparison details...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>MIT licensed · <a href="https://github.com/vansh-visariya/benchmark-sakura">benchmark-sakura on GitHub</a></p>
+    <p>sakura.vaansh.dev · Open Benchmark for Small &amp; Local Coding LLMs</p>
+  </footer>
+
+  <script src="leaderboard-page.js"></script>
+</body>
+</html>

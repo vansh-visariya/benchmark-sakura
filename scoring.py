@@ -122,6 +122,7 @@ def normalize_task_results(results: list[TaskResult]) -> list[dict]:
         {
             "task_id": r.task.id,
             "category": r.task.category,
+            "tags": list(r.task.tags),
             "passed": r.passed,
             "passed_tests": r.passed_tests,
             "failed_tests": r.failed_tests,
@@ -133,3 +134,4 @@ def normalize_task_results(results: list[TaskResult]) -> list[dict]:
         }
         for r in results
     ]
+
