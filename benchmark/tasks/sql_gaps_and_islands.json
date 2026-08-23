@@ -1,0 +1,13 @@
+{
+  "id": "sql_gaps_and_islands",
+  "category": "sql",
+  "tags": ["all", "sql", "hard"],
+  "prompt": "Given a table `system_logs (log_date TEXT PRIMARY KEY, status TEXT)` containing daily server status records (log_date formatted as 'YYYY-MM-DD'), write a SQL query to find all contiguous date intervals where status was 'ACTIVE'. Return columns: `start_date`, `end_date`, and `consecutive_days`, ordered by `start_date` ascending.",
+  "sql_schema": "CREATE TABLE system_logs (log_date TEXT PRIMARY KEY, status TEXT);",
+  "sql_setup": "INSERT INTO system_logs VALUES ('2026-01-01', 'ACTIVE'), ('2026-01-02', 'ACTIVE'), ('2026-01-03', 'ACTIVE'), ('2026-01-04', 'DOWN'), ('2026-01-05', 'ACTIVE'), ('2026-01-06', 'ACTIVE');",
+  "reference": "WITH active_logs AS (\n  SELECT log_date,\n         julianday(log_date) - ROW_NUMBER() OVER (ORDER BY log_date) AS grp\n  FROM system_logs\n  WHERE status = 'ACTIVE'\n)\nSELECT MIN(log_date) AS start_date, MAX(log_date) AS end_date, COUNT(*) AS consecutive_days\nFROM active_logs\nGROUP BY grp\nORDER BY start_date;",
+  "expected": [["2026-01-01", "2026-01-03", 3], ["2026-01-05", "2026-01-06", 2]],
+  "tests": {
+    "main": "[['2026-01-01', '2026-01-03', 3], ['2026-01-05', '2026-01-06', 2]]"
+  }
+}

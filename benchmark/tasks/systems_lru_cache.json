@@ -1,0 +1,13 @@
+{
+  "id": "systems_lru_cache",
+  "category": "systems",
+  "tags": ["all", "systems", "hard"],
+  "prompt": "Implement a class `LRUCache(capacity)` with methods `get(key)` and `put(key, value)`. `get(key)` returns the value of the key if it exists, otherwise -1. `put(key, value)` updates or inserts the value. When the cache reaches its capacity, it should invalidate and evict the least recently used key before inserting a new item. Both operations must run in O(1) average time complexity.",
+  "reference": "from collections import OrderedDict\n\nclass LRUCache:\n    def __init__(self, capacity: int):\n        self.capacity = capacity\n        self.cache = OrderedDict()\n\n    def get(self, key):\n        if key not in self.cache:\n            return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key, value):\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n",
+  "tests": {
+    "test_basic_ops": "c = LRUCache(2)\nc.put(1, 1)\nc.put(2, 2)\nassert c.get(1) == 1\nc.put(3, 3)\nassert c.get(2) == -1 # 2 was evicted\nc.put(4, 4)\nassert c.get(1) == -1 # 1 was evicted\nassert c.get(3) == 3\nassert c.get(4) == 4\n",
+    "test_update_existing_key": "c = LRUCache(2)\nc.put(1, 10)\nc.put(2, 20)\nc.put(1, 15) # update key 1\nc.put(3, 30) # should evict key 2, not key 1\nassert c.get(1) == 15\nassert c.get(2) == -1\nassert c.get(3) == 30\n",
+    "test_capacity_one": "c = LRUCache(1)\nc.put('a', 100)\nassert c.get('a') == 100\nc.put('b', 200)\nassert c.get('a') == -1\nassert c.get('b') == 200\n",
+    "test_large_sequence": "c = LRUCache(100)\nfor i in range(200):\n    c.put(i, i * 2)\nfor i in range(100):\n    assert c.get(i) == -1\nfor i in range(100, 200):\n    assert c.get(i) == i * 2\n"
+  }
+}

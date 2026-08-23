@@ -6,7 +6,8 @@
   "reference": "def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    raise ValueError('no solution')\n",
   "tests": {
     "test_basic": "assert sorted(two_sum([2, 7, 11, 15], 9)) == [0, 1]\n",
-    "test_repeat": "assert sorted(two_sum([3, 2, 4], 6)) == [1, 2]\n",
-    "test_negative": "assert sorted(two_sum([-1, -2, -3, -4, -5], -8)) == [2, 4]\n"
+    "test_duplicates": "assert sorted(two_sum([3, 3], 6)) == [0, 1]\nassert sorted(two_sum([3, 2, 4], 6)) == [1, 2]\n",
+    "test_negative_and_zeros": "assert sorted(two_sum([-5, 0, 5, 10], 0)) == [0, 2]\nassert sorted(two_sum([-1, -2, -3, -4, -5], -8)) == [2, 4]\n",
+    "test_non_mutation": "original = [1, 5, 3, 7]\ncopy = list(original)\nres = two_sum(original, 8)\nassert sorted(res) == [0, 3] or sorted(res) == [1, 2]\nassert original == copy\n"
   }
 }

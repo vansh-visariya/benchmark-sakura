@@ -6,7 +6,8 @@
   "reference": "def calculate_price(items, discount):\n    subtotal = 0.0\n    for item in items:\n        subtotal += item['price'] * item['quantity']\n    return round(subtotal - discount, 2)\n\n\ndef process_order(items, discount):\n    return calculate_price(items, discount)\n",
   "tests": {
     "test_process_order": "assert process_order([{'price': 10, 'quantity': 2}], 5) == 15.0\n",
-    "test_calculate_price": "assert calculate_price([{'price': 10, 'quantity': 2}], 0) == 20.0\n",
-    "test_calculate_discount": "assert calculate_price([{'price': 5, 'quantity': 4}, {'price': 3, 'quantity': 2}], 10) == 16.0\n"
+    "test_calculate_price": "assert calculate_price([{'price': 10, 'quantity': 2}], 0) == 20.0\nassert calculate_price([], 0) == 0.0\n",
+    "test_calculate_discount": "assert calculate_price([{'price': 5, 'quantity': 4}, {'price': 3, 'quantity': 2}], 10) == 16.0\n",
+    "test_structural_contract": "import inspect\nassert callable(calculate_price)\nassert callable(process_order)\n"
   }
 }

@@ -1,0 +1,12 @@
+{
+  "id": "systems_token_bucket",
+  "category": "systems",
+  "tags": ["all", "systems", "hard"],
+  "prompt": "Implement a token bucket rate limiter class `TokenBucketRateLimiter(rate, capacity, initial_tokens=None, start_time=0.0)` where `rate` is tokens added per second, `capacity` is the maximum bucket capacity, and `initial_tokens` defaults to `capacity`. Implement `allow_request(tokens=1, now=None) -> bool` which returns `True` and deducts tokens if enough tokens are available at timestamp `now` (in float seconds, defaults to current time), or `False` otherwise.",
+  "reference": "import time\n\nclass TokenBucketRateLimiter:\n    def __init__(self, rate: float, capacity: float, initial_tokens: float = None, start_time: float = 0.0):\n        self.rate = float(rate)\n        self.capacity = float(capacity)\n        self.tokens = float(capacity if initial_tokens is None else initial_tokens)\n        self.last_updated = float(start_time)\n\n    def allow_request(self, tokens: float = 1, now: float = None) -> bool:\n        if now is None:\n            now = time.monotonic()\n        delta = max(0.0, float(now) - self.last_updated)\n        self.tokens = min(self.capacity, self.tokens + delta * self.rate)\n        self.last_updated = float(now)\n\n        if self.tokens >= tokens:\n            self.tokens -= tokens\n            return True\n        return False\n",
+  "tests": {
+    "test_burst_within_capacity": "limiter = TokenBucketRateLimiter(rate=1.0, capacity=3.0, initial_tokens=3.0)\nassert limiter.allow_request(1, now=0.0) is True\nassert limiter.allow_request(1, now=0.0) is True\nassert limiter.allow_request(1, now=0.0) is True\nassert limiter.allow_request(1, now=0.0) is False # exhausted\n",
+    "test_refill_over_time": "limiter = TokenBucketRateLimiter(rate=2.0, capacity=5.0, initial_tokens=0.0)\nassert limiter.allow_request(1, now=0.0) is False # starts with 0\nassert limiter.allow_request(1, now=0.5) is True  # 1 token refilled (0.5s * 2)\nassert limiter.allow_request(1, now=0.5) is False # exhausted again\nassert limiter.allow_request(2, now=1.5) is True  # 2 tokens refilled after 1.0s\n",
+    "test_capacity_cap": "limiter = TokenBucketRateLimiter(rate=10.0, capacity=5.0, initial_tokens=0.0)\n# After 10 seconds, tokens should cap at 5.0, not 100.0\nassert limiter.allow_request(5, now=10.0) is True\nassert limiter.allow_request(1, now=10.0) is False\n"
+  }
+}

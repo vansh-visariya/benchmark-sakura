@@ -1,0 +1,12 @@
+{
+  "id": "protocol_semver",
+  "category": "protocol",
+  "tags": ["all", "protocol", "hard"],
+  "prompt": "Write a function `compare_semver(v1: str, v2: str) -> int` that compares two Semantic Version 2.0.0 strings. Return -1 if v1 < v2, 0 if v1 == v2, and 1 if v1 > v2. Correctly handle major.minor.patch, prerelease tags (e.g. `-alpha.1 < -alpha.2 < -beta < 1.0.0`), and ignore build metadata (`+build.123`).",
+  "reference": "import re\n\ndef _parse(v: str):\n    v = v.split('+', 1)[0]\n    parts = v.split('-', 1)\n    main = [int(x) for x in parts[0].split('.')]\n    prerelease = []\n    if len(parts) > 1 and parts[1]:\n        for p in parts[1].split('.'):\n            if p.isdigit():\n                prerelease.append((0, int(p)))\n            else:\n                prerelease.append((1, p))\n    return main, prerelease\n\ndef compare_semver(v1: str, v2: str) -> int:\n    m1, p1 = _parse(v1)\n    m2, p2 = _parse(v2)\n    if m1 != m2:\n        return 1 if m1 > m2 else -1\n    if not p1 and not p2:\n        return 0\n    if not p1 and p2:\n        return 1 # normal > prerelease\n    if p1 and not p2:\n        return -1 # prerelease < normal\n    if p1 == p2:\n        return 0\n    return 1 if p1 > p2 else -1\n",
+  "tests": {
+    "test_normal_versions": "assert compare_semver('1.2.3', '1.2.3') == 0\nassert compare_semver('1.2.4', '1.2.3') == 1\nassert compare_semver('1.2.0', '1.10.0') == -1\nassert compare_semver('2.0.0', '1.99.99') == 1\n",
+    "test_prerelease_precedence": "assert compare_semver('1.0.0-alpha', '1.0.0') == -1\nassert compare_semver('1.0.0-alpha', '1.0.0-alpha.1') == -1\nassert compare_semver('1.0.0-alpha.1', '1.0.0-alpha.beta') == -1\nassert compare_semver('1.0.0-beta', '1.0.0-rc.1') == -1\n",
+    "test_build_metadata_ignored": "assert compare_semver('1.0.0+20130313144700', '1.0.0+exp.sha.5114f85') == 0\nassert compare_semver('1.0.0-beta+exp.sha.5114f85', '1.0.0-beta') == 0\n"
+  }
+}

@@ -6,7 +6,8 @@
   "reference": "class ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\n\n\ndef reverse_list(head):\n    prev = None\n    current = head\n    while current is not None:\n        nxt = current.next\n        current.next = prev\n        prev = current\n        current = nxt\n    return prev\n",
   "tests": {
     "test_empty": "assert reverse_list(None) is None\n",
-    "test_single": "h = ListNode(1); assert reverse_list(h).val == 1\n",
-    "test_multi": "h = ListNode(1, ListNode(2, ListNode(3)))\nrev = reverse_list(h)\nvals = []\ncur = rev\nwhile cur: vals.append(cur.val); cur = cur.next\nassert vals == [3, 2, 1]\n"
+    "test_single": "h = ListNode(42)\nres = reverse_list(h)\nassert res.val == 42 and res.next is None\n",
+    "test_multi": "h = ListNode(1, ListNode(2, ListNode(3)))\nrev = reverse_list(h)\nvals = []\ncur = rev\nwhile cur:\n    vals.append(cur.val)\n    cur = cur.next\nassert vals == [3, 2, 1]\n",
+    "test_even_length_and_no_cycle": "head = None\nfor v in reversed(range(10)):\n    head = ListNode(v, head)\nrev = reverse_list(head)\nvals = []\ncur = rev\ncount = 0\nwhile cur and count < 20:\n    vals.append(cur.val)\n    cur = cur.next\n    count += 1\nassert vals == list(reversed(range(10)))\nassert count == 10\n"
   }
 }

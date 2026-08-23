@@ -5,8 +5,9 @@
   "prompt": "Write a function `max_subarray_sum(nums)` that returns the maximum sum of any contiguous subarray using an efficient single-pass algorithm.",
   "reference": "def max_subarray_sum(nums):\n    best = nums[0]\n    current = nums[0]\n    for num in nums[1:]:\n        current = max(num, current + num)\n        best = max(best, current)\n    return best\n",
   "tests": {
-    "test_all_negative": "assert max_subarray_sum([-3, -1, -2]) == -1\n",
+    "test_all_negative": "assert max_subarray_sum([-3, -1, -2]) == -1\nassert max_subarray_sum([-10]) == -10\n",
+    "test_all_positive": "assert max_subarray_sum([1, 2, 3, 4]) == 10\nassert max_subarray_sum([5]) == 5\n",
     "test_mixed": "assert max_subarray_sum([-2, 1, -3, 4, -1, 2, 1, -5, 4]) == 6\n",
-    "test_single": "assert max_subarray_sum([5]) == 5\n"
+    "test_with_zeros_and_alternating": "assert max_subarray_sum([0, -1, 2, -1, 3, 0, -2]) == 4\nassert max_subarray_sum([5, -4, 5]) == 6\n"
   }
 }

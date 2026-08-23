@@ -5,8 +5,8 @@
   "prompt": "The function `count_down(n)` is supposed to print the numbers from `n` down to 1 (inclusive). It currently has a bug. Fix it so the tests pass.\n\n```python\ndef count_down(n):\n    result = []\n    i = n\n    while i > 0:\n        result.append(i)\n        i += 1\n    return result\n```\n\nExpected: count_down(3) == [3, 2, 1]",
   "reference": "def count_down(n):\n    result = []\n    i = n\n    while i > 0:\n        result.append(i)\n        i -= 1\n    return result\n",
   "tests": {
-    "test_basic": "assert count_down(3) == [3, 2, 1]\n",
+    "test_basic": "assert count_down(5) == [5, 4, 3, 2, 1]\nassert count_down(3) == [3, 2, 1]\n",
     "test_single": "assert count_down(1) == [1]\n",
-    "test_zero": "assert count_down(0) == []\n"
+    "test_zero_and_negative": "assert count_down(0) == []\nassert count_down(-3) == []\n"
   }
 }

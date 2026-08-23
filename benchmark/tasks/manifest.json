@@ -17,8 +17,14 @@
     "sql_aggregate_orders.json",
     "sql_top_n_per_group.json",
     "sql_recursive_hierarchy.json",
+    "sql_sessionization.json",
+    "sql_gaps_and_islands.json",
     "refactor_extract_method.json",
     "refactor_flatten_nested.json",
-    "refactor_replace_conditionals.json"
+    "refactor_replace_conditionals.json",
+    "systems_lru_cache.json",
+    "systems_token_bucket.json",
+    "protocol_resp_parser.json",
+    "protocol_semver.json"
   ]
 }

@@ -6,7 +6,7 @@
   "reference": "def average(numbers):\n    if not numbers:\n        return 0.0\n    return sum(numbers) / len(numbers)\n",
   "tests": {
     "test_empty": "assert average([]) == 0.0\n",
-    "test_basic": "assert average([2, 4]) == 3.0\n",
-    "test_single": "assert average([5]) == 5.0\n"
+    "test_single_and_negative": "assert average([-5]) == -5.0\nassert average([0]) == 0.0\n",
+    "test_floating_precision": "assert average([1.5, 2.5, 3.5]) == 2.5\nassert average([2, 4]) == 3.0\n"
   }
 }

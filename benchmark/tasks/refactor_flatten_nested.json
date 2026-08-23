@@ -6,7 +6,7 @@
   "reference": "def collect_names(people):\n    return [person['name'] for group in people for person in group]\n",
   "tests": {
     "test_basic": "assert collect_names([[{'name': 'A'}, {'name': 'B'}], [{'name': 'C'}]]) == ['A', 'B', 'C']\n",
-    "test_empty": "assert collect_names([]) == []\n",
-    "test_empty_groups": "assert collect_names([[], []]) == []\n"
+    "test_empty_outer_and_inner": "assert collect_names([]) == []\nassert collect_names([[], []]) == []\nassert collect_names([[{'name': 'X'}], [], [{'name': 'Y'}]]) == ['X', 'Y']\n",
+    "test_single_group": "assert collect_names([[{'name': 'Only'}]]) == ['Only']\n"
   }
 }

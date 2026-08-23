@@ -1,0 +1,13 @@
+{
+  "id": "sql_sessionization",
+  "category": "sql",
+  "tags": ["all", "sql", "hard"],
+  "prompt": "Given a table `web_events (id INTEGER PRIMARY KEY, user_id INTEGER, event_time INTEGER)` (where event_time is unix timestamp in seconds), write a SQL query that groups events into sessions. A new session starts if inactivity between consecutive events for a user exceeds 1800 seconds (30 minutes), or on the user's first event. Return columns: `user_id`, `session_start` (min event_time in session), `session_end` (max event_time in session), and `event_count`, ordered by `user_id` ASC, `session_start` ASC.",
+  "sql_schema": "CREATE TABLE web_events (id INTEGER PRIMARY KEY, user_id INTEGER, event_time INTEGER);",
+  "sql_setup": "INSERT INTO web_events VALUES (1, 1, 1000), (2, 1, 1200), (3, 1, 1500), (4, 1, 4000), (5, 1, 4200), (6, 2, 2000);",
+  "reference": "WITH lagged AS (\n  SELECT user_id, event_time,\n         CASE WHEN event_time - LAG(event_time) OVER (PARTITION BY user_id ORDER BY event_time) > 1800 OR LAG(event_time) OVER (PARTITION BY user_id ORDER BY event_time) IS NULL THEN 1 ELSE 0 END AS is_new_session\n  FROM web_events\n),\nsession_labeled AS (\n  SELECT user_id, event_time,\n         SUM(is_new_session) OVER (PARTITION BY user_id ORDER BY event_time ROWS UNBOUNDED PRECEDING) AS session_id\n  FROM lagged\n)\nSELECT user_id, MIN(event_time) AS session_start, MAX(event_time) AS session_end, COUNT(*) AS event_count\nFROM session_labeled\nGROUP BY user_id, session_id\nORDER BY user_id, session_start;",
+  "expected": [[1, 1000, 1500, 3], [1, 4000, 4200, 2], [2, 2000, 2000, 1]],
+  "tests": {
+    "main": "[[1, 1000, 1500, 3], [1, 4000, 4200, 2], [2, 2000, 2000, 1]]"
+  }
+}
