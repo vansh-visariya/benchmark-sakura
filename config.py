@@ -18,13 +18,49 @@ LOG_DIR = ROOT / ".logs"
 DEFAULT_DATABASE_URL = "https://sakura.vaansh.dev"
 DEFAULT_DATABASE_TIMEOUT = 30
 
-SANDBOX_IMAGE = "sakura-executor:0.2.0"
+SANDBOX_IMAGE = "sakura-executor:0.3.0"
 DEFAULT_SANDBOX_TIMEOUT_SECONDS = 30
 DEFAULT_SANDBOX_MEM_LIMIT_MB = 512
 DEFAULT_SANDBOX_CPUS = 0.5
 DEFAULT_SANDBOX_PIDS_LIMIT = 128
 
+DEFAULT_AGENT_MAX_STEPS = 20
+DEFAULT_AGENT_STEP_TIMEOUT_SECONDS = 30
+DEFAULT_WORKSPACE_TMPFS_MB = 256
+
 DEFAULT_TASK_TAGS = ("all",)
+
+
+def _env_int(name: str, default: int, minimum: int | None = None) -> int:
+    """Read an integer env var, falling back to the default on bad values."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        print(f"warning: {name}={raw!r} is not an integer; using default {default}", flush=True)
+        return default
+    if minimum is not None and value < minimum:
+        print(f"warning: {name}={value} is below the minimum {minimum}; using {minimum}", flush=True)
+        return minimum
+    return value
+
+
+def _env_float(name: str, default: float, minimum: float | None = None) -> float:
+    """Read a float env var, falling back to the default on bad values."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        print(f"warning: {name}={raw!r} is not a number; using default {default}", flush=True)
+        return default
+    if minimum is not None and value < minimum:
+        print(f"warning: {name}={value} is below the minimum {minimum}; using {minimum}", flush=True)
+        return minimum
+    return value
 
 
 @dataclass
@@ -42,6 +78,9 @@ class Config:
     sandbox_mem_limit_mb: int = DEFAULT_SANDBOX_MEM_LIMIT_MB
     sandbox_cpus: float = DEFAULT_SANDBOX_CPUS
     sandbox_pids_limit: int = DEFAULT_SANDBOX_PIDS_LIMIT
+    agent_max_steps: int = DEFAULT_AGENT_MAX_STEPS
+    agent_step_timeout_seconds: float = DEFAULT_AGENT_STEP_TIMEOUT_SECONDS
+    workspace_tmpfs_mb: int = DEFAULT_WORKSPACE_TMPFS_MB
     default_task_tags: tuple[str, ...] = field(default_factory=lambda: DEFAULT_TASK_TAGS)
 
     # --- paths (kept here so tests can point everything at a temp dir) ---
@@ -62,21 +101,22 @@ def load_config() -> Config:
     return Config(
         ollama_base_url=os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
         database_url=os.environ.get("SAKURA_DATABASE_URL", DEFAULT_DATABASE_URL),
-        database_timeout=int(os.environ.get("SAKURA_DATABASE_TIMEOUT", str(DEFAULT_DATABASE_TIMEOUT))),
+        database_timeout=_env_int("SAKURA_DATABASE_TIMEOUT", DEFAULT_DATABASE_TIMEOUT, minimum=1),
         docker_network=os.environ.get("SAKURA_DOCKER_NETWORK", "none"),
         sandbox_image=os.environ.get(
             "SAKURA_SANDBOX_IMAGE", SANDBOX_IMAGE
         ),
-        sandbox_timeout_seconds=float(
-            os.environ.get("SAKURA_SANDBOX_TIMEOUT", str(DEFAULT_SANDBOX_TIMEOUT_SECONDS))
+        sandbox_timeout_seconds=_env_float(
+            "SAKURA_SANDBOX_TIMEOUT", DEFAULT_SANDBOX_TIMEOUT_SECONDS, minimum=1.0
         ),
-        sandbox_mem_limit_mb=int(
-            os.environ.get("SAKURA_SANDBOX_MEM_MB", str(DEFAULT_SANDBOX_MEM_LIMIT_MB))
+        sandbox_mem_limit_mb=_env_int("SAKURA_SANDBOX_MEM_MB", DEFAULT_SANDBOX_MEM_LIMIT_MB, minimum=64),
+        sandbox_cpus=_env_float("SAKURA_SANDBOX_CPUS", DEFAULT_SANDBOX_CPUS, minimum=0.1),
+        sandbox_pids_limit=_env_int("SAKURA_SANDBOX_PIDS", DEFAULT_SANDBOX_PIDS_LIMIT, minimum=16),
+        agent_max_steps=_env_int("SAKURA_AGENT_MAX_STEPS", DEFAULT_AGENT_MAX_STEPS, minimum=1),
+        agent_step_timeout_seconds=_env_float(
+            "SAKURA_AGENT_STEP_TIMEOUT", DEFAULT_AGENT_STEP_TIMEOUT_SECONDS, minimum=1.0
         ),
-        sandbox_cpus=float(os.environ.get("SAKURA_SANDBOX_CPUS", str(DEFAULT_SANDBOX_CPUS))),
-        sandbox_pids_limit=int(
-            os.environ.get("SAKURA_SANDBOX_PIDS", str(DEFAULT_SANDBOX_PIDS_LIMIT))
-        ),
+        workspace_tmpfs_mb=_env_int("SAKURA_WORKSPACE_MB", DEFAULT_WORKSPACE_TMPFS_MB, minimum=32),
         default_task_tags=tuple(
             tag.strip()
             for tag in os.environ.get("SAKURA_TASK_TAGS", ",".join(DEFAULT_TASK_TAGS)).split(",")
