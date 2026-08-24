@@ -7,6 +7,11 @@ export interface Env {
 type SubmissionPayload = {
   model: string;
   version: string;
+  model_variant?: {
+    quantization?: string | null;
+    parameter_size?: string | null;
+    family?: string | null;
+  };
   hardware: {
     gpus?: Array<{ name?: string; memory_total_gb?: number | null; is_cpu?: boolean }>;
     cpu_cores?: number;
@@ -37,6 +42,8 @@ type LeaderboardRow = {
   cpu_cores: number | null;
   ram_gb: number | null;
   platform: string | null;
+  model_quantization: string | null;
+  model_parameter_size: string | null;
   created_at: string;
 };
 
@@ -122,6 +129,22 @@ function validateSubmission(body: unknown): SubmissionPayload | string {
     return "hardware.ram_total_gb must be positive";
   }
 
+  const variant = payload.model_variant;
+  if (variant != null) {
+    if (typeof variant !== "object" || Array.isArray(variant)) {
+      return "model_variant must be an object";
+    }
+    for (const key of ["quantization", "parameter_size", "family"] as const) {
+      const value = variant[key];
+      if (value != null && typeof value !== "string") {
+        return `model_variant.${key} must be a string`;
+      }
+      if (typeof value === "string" && value.length > 64) {
+        return `model_variant.${key} must be at most 64 characters`;
+      }
+    }
+  }
+
   return payload;
 }
 
@@ -195,7 +218,10 @@ async function leaderboard(
   const query = `
     SELECT id, model, pass_rate, solved_count, task_count,
            throughput, avg_ttft_ms, gpu_name, gpu_vram_gb,
-           cpu_cores, ram_gb, platform, created_at
+           cpu_cores, ram_gb, platform,
+           json_extract(payload, '$.model_variant.quantization') as model_quantization,
+           json_extract(payload, '$.model_variant.parameter_size') as model_parameter_size,
+           created_at
     FROM submissions
     ${whereClause}
     ORDER BY ${sortCol} ${sortDir}, throughput DESC, created_at DESC

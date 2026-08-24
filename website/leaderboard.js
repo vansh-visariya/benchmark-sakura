@@ -65,7 +65,7 @@ function renderRows(entries) {
       (entry, index) => `
       <tr onclick="window.location.href='/leaderboard.html?id=${entry.id}'" style="cursor: pointer;" title="Click to view details on full leaderboard">
         <td><span class="rank-badge rank-${index + 1 <= 3 ? index + 1 : 'other'}">${index + 1}</span></td>
-        <td><strong>${escapeHtml(entry.model)}</strong></td>
+        <td><strong>${escapeHtml(entry.model)}</strong>${entry.model_quantization ? ` <span class="quant-badge">${escapeHtml(entry.model_quantization)}</span>` : ""}</td>
         <td>
           <div class="pass-label">
             <strong>${pct(entry.pass_rate)}</strong>

@@ -756,6 +756,19 @@ main {
   font-size: 0.7rem;
 }
 
+.quant-badge {
+  display: inline-block;
+  vertical-align: middle;
+  background: var(--bg);
+  border: 1px solid rgba(232, 135, 154, 0.3);
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  margin-left: 0.45rem;
+  font-size: 0.72rem;
+  color: var(--accent-glow);
+  white-space: nowrap;
+}
+
 .col-compare {
   width: 48px;
   text-align: center;

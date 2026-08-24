@@ -110,7 +110,8 @@ function applyFiltersAndSort() {
       const matchModel = (e.model || "").toLowerCase().includes(q);
       const matchGpu = (e.gpu_name || "").toLowerCase().includes(q);
       const matchPlat = (e.platform || "").toLowerCase().includes(q);
-      return matchModel || matchGpu || matchPlat;
+      const matchQuant = (e.model_quantization || "").toLowerCase().includes(q);
+      return matchModel || matchGpu || matchPlat || matchQuant;
     });
   }
 
@@ -181,6 +182,7 @@ function renderTable() {
           <td class="col-model">
             <div class="model-name">
               <strong>${escapeHtml(entry.model)}</strong>
+              ${entry.model_quantization ? `<span class="quant-badge" title="Quantization${entry.model_parameter_size ? ` / params ${escapeHtml(entry.model_parameter_size)}` : ""}">${escapeHtml(entry.model_quantization)}${entry.model_parameter_size ? ` · ${escapeHtml(entry.model_parameter_size)}` : ""}</span>` : ""}
             </div>
           </td>
           <td class="col-pass">
@@ -377,6 +379,8 @@ async function openCompareModal() {
   const p2 = Math.round((m2.pass_rate ?? 0) * 100);
   const tp1 = m1.throughput_tokens_per_sec ?? 0;
   const tp2 = m2.throughput_tokens_per_sec ?? 0;
+  const quant1 = d1.model_quantization || (d1.model_variant && d1.model_variant.quantization) || "";
+  const quant2 = d2.model_quantization || (d2.model_variant && d2.model_variant.quantization) || "";
 
   // Task comparison map
   const tasks1 = new Map((d1.task_results || []).map((t) => [t.task_id, t]));
@@ -394,7 +398,7 @@ async function openCompareModal() {
     <div class="compare-specs-grid">
       <div class="compare-spec-col">
         <div class="model-badge-header">
-          <h3>${escapeHtml(d1.model)}</h3>
+          <h3>${escapeHtml(d1.model)}${quant1 ? ` <span class="quant-badge">${escapeHtml(quant1)}</span>` : ""}</h3>
           <span class="time-sub">${timeAgo(d1.created_at)}</span>
         </div>
         <div class="stat-highlight">
@@ -411,7 +415,7 @@ async function openCompareModal() {
 
       <div class="compare-spec-col">
         <div class="model-badge-header">
-          <h3>${escapeHtml(d2.model)}</h3>
+          <h3>${escapeHtml(d2.model)}${quant2 ? ` <span class="quant-badge">${escapeHtml(quant2)}</span>` : ""}</h3>
           <span class="time-sub">${timeAgo(d2.created_at)}</span>
         </div>
         <div class="stat-highlight">
