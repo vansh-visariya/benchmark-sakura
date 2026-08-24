@@ -66,6 +66,7 @@ sakura report .results/run_qwen.json -o report.md
 | `sakura run -m MODEL -c CAT` | Run tasks in a specific category |
 | `sakura run -m MODEL --think` | Enable model reasoning before code output |
 | `sakura run -m MODEL -c terminal --steps N` | Run terminal-agent episodes (max N tool calls per task) |
+| `sakura run -m MODEL --variant Q4_K_M/7.6B/qwen2` | Label the model build (quantization/params/family) shown on the leaderboard; auto-detected from Ollama when omitted |
 | `sakura run -m MODEL --submit` | Run and submit to leaderboard |
 | `sakura submit FILE.json` | Submit a saved `.results/` file |
 | `sakura compare RUN1 RUN2` | Compare two runs side-by-side |
@@ -155,6 +156,7 @@ See [workers/README.md](workers/README.md) for full setup.
 | `SAKURA_AGENT_MAX_STEPS` | `20` | Max tool calls per terminal-agent episode |
 | `SAKURA_AGENT_STEP_TIMEOUT` | `30` | Per-command wall-clock timeout in seconds (terminal mode) |
 | `SAKURA_WORKSPACE_MB` | `256` | Size of the writable `/workspace` tmpfs for terminal episodes |
+| `SAKURA_MODEL_VARIANT` | *(auto)* | Manual variant label `QUANT/PARAMS/FAMILY`; overrides Ollama `/api/show` detection |
 
 ## License
 
