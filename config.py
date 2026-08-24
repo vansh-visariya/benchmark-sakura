@@ -81,6 +81,7 @@ class Config:
     agent_max_steps: int = DEFAULT_AGENT_MAX_STEPS
     agent_step_timeout_seconds: float = DEFAULT_AGENT_STEP_TIMEOUT_SECONDS
     workspace_tmpfs_mb: int = DEFAULT_WORKSPACE_TMPFS_MB
+    model_variant: str = ""
     default_task_tags: tuple[str, ...] = field(default_factory=lambda: DEFAULT_TASK_TAGS)
 
     # --- paths (kept here so tests can point everything at a temp dir) ---
@@ -117,6 +118,7 @@ def load_config() -> Config:
             "SAKURA_AGENT_STEP_TIMEOUT", DEFAULT_AGENT_STEP_TIMEOUT_SECONDS, minimum=1.0
         ),
         workspace_tmpfs_mb=_env_int("SAKURA_WORKSPACE_MB", DEFAULT_WORKSPACE_TMPFS_MB, minimum=32),
+        model_variant=os.environ.get("SAKURA_MODEL_VARIANT", ""),
         default_task_tags=tuple(
             tag.strip()
             for tag in os.environ.get("SAKURA_TASK_TAGS", ",".join(DEFAULT_TASK_TAGS)).split(",")

@@ -74,6 +74,26 @@ class ChatTurnResult:
     total_time: float = 0.0
 
 
+@dataclass
+class ModelVariant:
+    """Identity details distinguishing builds of the same model tag.
+
+    Two rebuilds of ``qwen2.5:7b`` can differ in quantization (Q4_K_M vs
+    Q8_0) and score very differently, so these ride along with every run.
+    """
+
+    quantization: str | None = None
+    parameter_size: str | None = None
+    family: str | None = None
+
+    def to_dict(self) -> dict[str, str | None]:
+        return {
+            "quantization": self.quantization,
+            "parameter_size": self.parameter_size,
+            "family": self.family,
+        }
+
+
 BASH_TOOL_SPEC = {
     "type": "function",
     "function": {
@@ -218,6 +238,26 @@ class OllamaClient:
             output_tokens=output_tokens,
             time_to_first_token=time_to_first_token,
             total_time=total_time,
+        )
+
+    def show(self, model: str) -> ModelVariant:
+        """Fetch variant metadata (quantization, params) for an installed tag.
+
+        Degrades to unknown fields when the server does not implement Ollama's
+        ``/api/show`` (e.g. plain OpenAI-compatible endpoints).
+        """
+        url = f"{self.base_url}/api/show"
+        try:
+            response = self.http.post(url, json={"model": model}, timeout=self.timeout)
+            response.raise_for_status()
+            body = response.json()
+        except Exception:
+            return ModelVariant()
+        details = body.get("details") or {}
+        return ModelVariant(
+            quantization=details.get("quantization_level") or None,
+            parameter_size=details.get("parameter_size") or None,
+            family=details.get("family") or None,
         )
 
 

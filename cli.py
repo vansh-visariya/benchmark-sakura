@@ -76,6 +76,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Max tool calls per terminal-agent task (overrides SAKURA_AGENT_MAX_STEPS)",
     )
+    run_parser.add_argument(
+        "--variant",
+        default=None,
+        help="Manual model variant label, e.g. 'Q4_K_M/7.6B/qwen2' (quantization/params/family). "
+        "Overrides auto-detected values from Ollama /api/show.",
+    )
 
     list_parser = sub.add_parser("list", help="List tasks that would run for the configured tags")
     list_parser.add_argument("--tags", default="", help="Comma-separated tags")
@@ -144,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Running {len(selected_tasks)} task(s) matching tags {tags} with model {args.model!r}...")
         if args.steps:
             runner.config.agent_max_steps = args.steps
+        if args.variant:
+            runner.config.model_variant = args.variant
         try:
             result = runner.run(model=args.model, system_prompt=args.system, tags=tags, think=args.think)
         except SandboxUnavailable as exc:

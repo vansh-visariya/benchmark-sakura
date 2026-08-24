@@ -19,7 +19,7 @@ from pathlib import Path
 from config import Config
 from detect import HardwareReport, detect
 from executor import Executor, run_task
-from models import CompletionRequest, OllamaClient
+from models import CompletionRequest, ModelVariant, OllamaClient
 from sandbox import ExecutionOutcome
 from scoring import (
     RunMetrics,
@@ -52,15 +52,21 @@ class RunResult:
     hardware: dict
     metrics: dict
     task_results: list[dict]
+    model_variant: ModelVariant | None = None
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "model": self.model,
             "version": self.version,
             "hardware": self.hardware,
             "metrics": self.metrics,
             "task_results": self.task_results,
         }
+        if self.model_variant is not None:
+            variant = {k: v for k, v in self.model_variant.to_dict().items() if v}
+            if variant:
+                payload["model_variant"] = variant
+        return payload
 
 
 _CODE_FENCE = re.compile(r"```(?:python|py|sql)?\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
@@ -169,7 +175,23 @@ class Runner:
             hardware=self.hardware.to_dict(),
             metrics=metrics,
             task_results=self._serialize_task_runs(runs),
+            model_variant=self.resolve_variant(model),
         )
+
+    def resolve_variant(self, model: str) -> ModelVariant:
+        """Variant metadata for a model: explicit override, else /api/show."""
+        override = self.config.model_variant
+        if override:
+            parts = [p.strip() for p in override.split("/") if p.strip()]
+            return ModelVariant(
+                quantization=parts[0] if parts else None,
+                parameter_size=parts[1] if len(parts) > 1 else None,
+                family=parts[2] if len(parts) > 2 else None,
+            )
+        try:
+            return self.client.show(model)
+        except Exception:  # noqa: BLE001 - metadata must never fail a run
+            return ModelVariant()
 
     def save_result(self, result: RunResult, path: Path | None = None) -> Path:
         """Write a run result to ``.results/`` (or an explicit path)."""
