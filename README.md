@@ -71,15 +71,6 @@ sakura report .results/run_qwen.json -o report.md
 | `sakura compare RUN1 RUN2` | Compare two runs side-by-side |
 | `sakura report RUN.json` | Generate Markdown report |
 
-## Task categories (23 curated tasks)
-
-- **codegen (6)** — algorithms and utilities (Fibonacci, Two Sum, Palindrome, Linked Lists, Max Subarray, JSON-to-CSV)
-- **bugfix (4)** — common defect patterns (Off-by-One, Divide-by-Zero, Null Handling, Regex Catastrophic Backtracking)
-- **sql (6)** — queries against in-memory SQLite (Joins, Aggregates, Top-N Per Group, Recursive Hierarchy, Sessionization, Gaps & Islands)
-- **refactor (3)** — structure and readability (Extract Method, Flatten Nested Logic, Replace Conditionals)
-- **systems (2)** — stateful systems problems (O(1) LRU Cache, Token Bucket Rate Limiter)
-- **protocol (2)** — serialization and network specifications (Redis RESP2 Protocol, SemVer 2.0.0 Comparator)
-
 ## Task categories (27 curated tasks)
 
 - **codegen (6)** — algorithms and utilities (Fibonacci, Two Sum, Palindrome, Linked Lists, Max Subarray, JSON-to-CSV)

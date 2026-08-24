@@ -28,8 +28,7 @@ Design notes
 """
 from __future__ import annotations
 
-import io
-import tarfile
+import posixpath
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -122,8 +121,9 @@ class Sandbox:
             pids_limit=self.config.sandbox_pids_limit,
             read_only=True,
             tmpfs={
-                "/tmp": "mode=1777",
-                WORKSPACE_DIR: f"mode=1777,size={self.config.workspace_tmpfs_mb}m",
+                "/tmp": "mode=1777,uid=10001,gid=999",
+                WORKSPACE_DIR: f"mode=1777,size={self.config.workspace_tmpfs_mb}m,uid=10001,gid=999",
+                TESTS_DIR: "mode=1777,uid=10001,gid=999",
             },
             working_dir=WORKSPACE_DIR,
             security_opt=["no-new-privileges"],
@@ -210,7 +210,7 @@ class Sandbox:
         return result
 
     def install_files(self, files: dict[str, str], dest: str) -> None:
-        """Write ``files`` (relative path -> text content) under ``dest`` via tar.
+        """Write ``files`` (relative path -> text content) under ``dest``.
 
         Used for both the visible task environment (before an episode) and the
         hidden test files (only ever installed AFTER the agent's last turn, so
@@ -218,15 +218,27 @@ class Sandbox:
         """
         if self._container is None:
             raise SandboxUnavailable("Sandbox.start() was not called")
-        stream = io.BytesIO()
-        with tarfile.open(fileobj=stream, mode="w") as tar:
-            for rel_path, content in files.items():
-                data = content.encode("utf-8")
-                info = tarfile.TarInfo(name=rel_path)
-                info.size = len(data)
-                info.mode = 0o644
-                tar.addfile(info, io.BytesIO(data))
-        self._container.put_archive(dest, stream.getvalue())
+        for rel_path, content in files.items():
+            normalized = posixpath.normpath(rel_path)
+            if normalized in (".", "..") or normalized.startswith("../") or normalized.startswith("/"):
+                raise ValueError(f"invalid sandbox file path: {rel_path!r}")
+            target = posixpath.join(dest, normalized)
+            result = self._container.exec_run(
+                [
+                    "python",
+                    "-c",
+                    "import os; path=os.environ['SAKURA_FILE_PATH']; os.makedirs(os.path.dirname(path), exist_ok=True); open(path, 'w', encoding='utf-8').write(os.environ['SAKURA_FILE_CONTENT'])",
+                ],
+                environment={
+                    "SAKURA_FILE_PATH": target,
+                    "SAKURA_FILE_CONTENT": content,
+                },
+                demux=True,
+            )
+            if result.exit_code != 0:
+                _, stderr = result.output or (b"", b"")
+                detail = (stderr or b"").decode("utf-8", errors="replace").strip()
+                raise RuntimeError(f"could not install {rel_path!r}: {detail or result.exit_code}")
 
     def reset_workspace(self) -> None:
         """Wipe /workspace between tasks so episodes cannot observe each other."""
