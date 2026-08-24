@@ -137,6 +137,10 @@ def _read_os_release() -> str:
     if sys.platform == "win32":
         v = sys.getwindowsversion()
         return f"{v.major}.{v.minor}.{v.build}"
+    if sys.platform == "darwin":
+        out = _safe_run(["sw_vers", "-productVersion"])
+        if out:
+            return f"macOS {out.strip()}"
     out = _safe_run(["cat", "/etc/os-release"])
     if out:
         for line in out.splitlines():
@@ -146,7 +150,10 @@ def _read_os_release() -> str:
 
 
 def _safe_run(args: list[str]) -> str:
-    result = subprocess.run(args, capture_output=True, text=True, timeout=5)
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, timeout=5)
+    except (subprocess.TimeoutExpired, OSError):
+        return ""
     if result.returncode != 0:
         return ""
     return result.stdout
@@ -174,7 +181,7 @@ def _read_nvidia_gpu() -> GPUInfo | None:
 
 def _read_gpu() -> GPUInfo | None:
     """Probe for a discrete GPU across vendors; return None if none is found."""
-    for probe in (_read_nvidia_gpu, _read_amd_gpu, _read_intel_gpu):
+    for probe in (_read_nvidia_gpu, _read_amd_gpu, _read_intel_gpu, _read_apple_gpu):
         try:
             gpu = probe()
         except Exception:
@@ -182,6 +189,32 @@ def _read_gpu() -> GPUInfo | None:
         if gpu is not None:
             return gpu
     return None
+
+
+def _read_apple_gpu() -> GPUInfo | None:
+    """Report Apple Silicon's unified memory as the inference GPU.
+
+    M-series Macs run Ollama on the Metal GPU using unified memory, so the
+    chip name plus ``hw.memsize`` is the honest capability report. Intel
+    Macs have no probeable discrete GPU here, so they fall through to the
+    CPU-only fallback.
+    """
+    if sys.platform != "darwin":
+        return None
+    chip = _safe_run(["sysctl", "-n", "machdep.cpu.brand_string"]).strip()
+    if not chip.startswith("Apple"):
+        return None
+    total_mb = 0
+    mem_out = _safe_run(["sysctl", "-n", "hw.memsize"]).strip()
+    if mem_out:
+        try:
+            total_mb = int(mem_out) // (1024 * 1024)
+        except ValueError:
+            total_mb = 0
+    return GPUInfo(
+        name=f"{chip} (unified memory)",
+        memory_total_mb=total_mb or None,
+    )
 
 
 def _read_amd_gpu() -> GPUInfo | None:

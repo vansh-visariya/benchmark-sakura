@@ -72,6 +72,8 @@ sakura report .results/run_qwen.json -o report.md
 | `sakura compare RUN1 RUN2` | Compare two runs side-by-side |
 | `sakura report RUN.json` | Generate Markdown report |
 
+Hardware probing supports NVIDIA (`nvidia-smi`), AMD (`rocminfo`), Intel dGPU, and Apple Silicon (M-chip reported with unified memory as the inference GPU). macOS version is read via `sw_vers`; Linux via `/etc/os-release`.
+
 ## Task categories (27 curated tasks)
 
 - **codegen (6)** — algorithms and utilities (Fibonacci, Two Sum, Palindrome, Linked Lists, Max Subarray, JSON-to-CSV)
